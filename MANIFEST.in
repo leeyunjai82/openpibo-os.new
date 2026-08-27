@@ -1,0 +1,5 @@
+include README.rst
+include README.md
+recursive-include openpibo/profiles *.toml
+recursive-include requirements *.txt
+include requirements/README.md
