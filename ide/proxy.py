@@ -103,6 +103,49 @@ def _clean_headers(headers):
   return {k: v for k, v in headers.items() if k.lower() not in _DROP}
 
 
+def _without_multi(headers):
+  """set-cookie 는 _apply_multi_headers 가 따로 붙인다. 여기서는 뺀다."""
+
+  return {k: v for k, v in headers.items() if k.lower() != 'set-cookie'}
+
+
+def _rewrite_location(value, name):
+  """
+  뒤쪽 앱이 준 Location 을 프록시 경로로 옮긴다.
+
+  뒤쪽은 자기가 루트에 있는 줄 알고 ``/landed`` 를 준다. 그대로 넘기면
+  브라우저가 **허브 루트**의 /landed 로 가버린다. ``/tools/landed`` 로 고친다.
+
+  절대 URL(https://...)이나 프로토콜 상대(//host/...)는 바깥을 가리키는
+  것이므로 건드리지 않는다.
+  """
+
+  if not value or value.startswith('//') or '://' in value:
+    return value
+  if value.startswith('/'):
+    return f'/{name}{value}'
+  return value                      # 상대 경로는 브라우저가 알아서 푼다
+
+
+def _apply_multi_headers(response, headers, name):
+  """
+  중복될 수 있는 헤더(Set-Cookie)를 살려서 붙인다.
+
+  dict 로 모으면 같은 이름이 하나로 접혀 **쿠키가 조용히 사라진다.**
+  지금 앱들은 쿠키를 안 쓰지만, 쓰기 시작하는 순간 원인을 찾기 어려운 버그가 된다.
+  """
+
+  for key, value in headers.multi_items():
+    low = key.lower()
+    if low in _DROP:
+      continue
+    if low == 'set-cookie':
+      response.raw_headers.append((b'set-cookie', value.encode('latin-1')))
+    elif low == 'location':
+      # 이미 dict 로 한 번 들어갔으므로 값을 바꿔 넣는다
+      response.headers['location'] = _rewrite_location(value, name)
+
+
 async def proxy_http(request: Request, name: str, path: str, client: httpx.AsyncClient):
   """
   HTTP 한 건을 뒤쪽으로 넘긴다.
@@ -112,7 +155,10 @@ async def proxy_http(request: Request, name: str, path: str, client: httpx.Async
   """
 
   port = UPSTREAMS[name]['port']
-  url = f'http://{HOST}:{port}{path}'
+  # 쿼리를 원문 그대로 URL 에 붙인다.
+  # httpx 의 params= 로 넘기면 같은 키가 여러 번 온 것(x=1&x=2)이 하나로 접힌다.
+  query = request.url.query
+  url = f'http://{HOST}:{port}{path}' + (f'?{query}' if query else '')
 
   headers = _clean_headers(request.headers)
   headers['host'] = f'{HOST}:{port}'
@@ -124,14 +170,12 @@ async def proxy_http(request: Request, name: str, path: str, client: httpx.Async
   req = client.build_request(
     request.method, url,
     headers=headers,
-    params=request.query_params,
     content=body or None,
   )
 
   try:
     resp = await client.send(req, stream=True)
   except httpx.ConnectError:
-    await _aclose(None)
     return Response(
       content=(f'{name} 서비스가 아직 뜨지 않았습니다. '
                f'시작 상태는 /api/service/{name} 에서 볼 수 있습니다.'),
@@ -148,13 +192,18 @@ async def proxy_http(request: Request, name: str, path: str, client: httpx.Async
   if any(t in ctype for t in _STREAM_TYPES):
     async def relay():
       try:
-        async for chunk in resp.aiter_raw():
+        # aiter_raw() 가 아니라 aiter_bytes() 다.
+        # 위에서 content-encoding 을 떼어 냈으므로 압축을 푼 바이트를 보내야 한다.
+        # raw 를 그대로 흘리면 브라우저가 gzip 인 줄 모르고 깨진 글자를 받는다.
+        async for chunk in resp.aiter_bytes():
           yield chunk
       finally:
         await resp.aclose()
 
-    return StreamingResponse(relay(), status_code=resp.status_code,
-                             headers=out_headers, media_type=ctype)
+    out = StreamingResponse(relay(), status_code=resp.status_code,
+                            headers=_without_multi(out_headers), media_type=ctype)
+    _apply_multi_headers(out, resp.headers, name)
+    return out
 
   try:
     content = await resp.aread()
@@ -164,13 +213,10 @@ async def proxy_http(request: Request, name: str, path: str, client: httpx.Async
   if 'text/html' in ctype:
     content = _rewrite_html(content, name)
 
-  return Response(content=content, status_code=resp.status_code,
-                  headers=out_headers, media_type=ctype)
-
-
-async def _aclose(obj):
-  if obj is not None:
-    await obj.aclose()
+  out = Response(content=content, status_code=resp.status_code,
+                 headers=_without_multi(out_headers), media_type=ctype)
+  _apply_multi_headers(out, resp.headers, name)
+  return out
 
 
 async def proxy_websocket(ws: WebSocket, name: str, path: str):

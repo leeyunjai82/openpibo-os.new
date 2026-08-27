@@ -182,22 +182,34 @@ function ensureService(tab) {
     if (switching) { switching.close(); switching = null; }
 
     const box = byId('switching');
+    box.classList.remove('failed');
     byId('switch_title').textContent = `${tab.name} 준비 중`;
     byId('switch_detail').textContent = '';
+    byId('switch_tech').style.display = 'none';
     byId('switch_retry').style.display = 'none';
     paintSteps('starting');
     box.classList.add('on');
 
-    const fail = (msg) => {
+    const fail = (msg, tech) => {
       if (switching) { switching.close(); switching = null; }
+      // 도는 것을 멈춘다. 계속 돌면 "아직 하는 중"으로 읽힌다.
+      box.classList.add('failed');
+      document.querySelectorAll('#switch_steps span').forEach(
+        (el) => { el.className = ''; });
       byId('switch_title').textContent = `${josa(tab.name, '을', '를')} 열지 못했습니다`;
       byId('switch_detail').textContent = msg;
+      // 개발자용 내용은 따로, 작게. 아이가 읽는 문장과 섞지 않는다.
+      const t = byId('switch_tech');
+      t.textContent = tech || '';
+      t.style.display = tech ? '' : 'none';
       byId('switch_retry').style.display = '';
       byId('switch_retry').onclick = () => show(tab.id);
       resolve(false);
     };
 
-    fetch(`/api/service/${tab.service}/start`, { method: 'POST' })
+    // api() 를 쓴다. 봉투의 result:'fail' 을 예외로 올려 주므로
+    // 실패했는데 그냥 다음 단계로 넘어가는 일이 없다.
+    api(`/api/service/${tab.service}/start`, { method: 'POST' })
       .then(() => {
         switching = new EventSource(`/api/service/${tab.service}/events`);
 
@@ -213,7 +225,7 @@ function ensureService(tab) {
             return;
           }
           if (d.phase === 'failed' || d.phase === 'timeout') {
-            fail(d.reason || '알 수 없는 이유로 시작하지 못했습니다.');
+            fail(d.reason || '알 수 없는 이유로 시작하지 못했습니다.', d.detail);
             return;
           }
           paintSteps(d.phase);
@@ -227,7 +239,7 @@ function ensureService(tab) {
           fail('상태를 받지 못했습니다. 잠시 후 다시 시도하세요.');
         };
       })
-      .catch((err) => fail(`시작 요청이 실패했습니다: ${err.message}`));
+      .catch((err) => fail('시작 요청을 보내지 못했습니다.', err.message));
   });
 }
 
@@ -286,12 +298,12 @@ async function loadInfo() {
     const rows = [
       ['보드', `${d.board_label} (${d.board})`],
       ['시리얼', d.serial],
-      ['OS', d.os_version],
+      ['버전', d.os_version],
       ['IP', d.ip || '(연결 없음)'],
       ['와이파이', d.ssid || '(없음)'],
-      ['온도', d.temp],
+      ['온도', d.temp_c == null ? '-' : `${d.temp_c}°C`],
       ['메모리', d.mem_used_percent == null ? '-' : `${d.mem_used_percent}% 사용중`],
-      ['가동시간', d.uptime ? `${Math.round(Number(d.uptime) / 60)}분` : '-'],
+      ['가동시간', d.uptime_text || '-'],
     ];
     dl.innerHTML = rows
       .map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(String(v ?? '-'))}</dd>`)

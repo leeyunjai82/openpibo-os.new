@@ -611,8 +611,13 @@
       if (switching) { switching.close(); switching = null; }
       showSpinner(`${label} 시작 중...`);
 
+      // 봉투 응답이다. 실패면 여기서 멈춰야 한다.
       fetch(`/api/service/${name}/start`, { method: 'POST' })
-        .then(() => {
+        .then((r) => r.json())
+        .then((b) => {
+          if (b && b.result === 'fail') {
+            throw new Error((b.data && b.data.message) || '시작하지 못했습니다.');
+          }
           // 진행 상태를 서버가 흘려보낸다.
           //   starting -> active(유닛이 떴다) -> ready(포트가 응답한다)
           // systemctl is-active 는 uvicorn 이 포트를 잡기 전에 이미 active 다.

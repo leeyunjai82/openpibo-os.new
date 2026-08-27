@@ -129,6 +129,27 @@ html, body {
 .switch-steps span { opacity: .35; }
 .switch-steps span.done { opacity: 1; color: var(--ok); font-weight: 600; }
 .switch-steps span.now  { opacity: 1; color: var(--brand); font-weight: 600; }
+.switch-steps span.failed { opacity: 1; color: var(--danger); font-weight: 600; }
+
+/* 실패했으면 도는 것을 멈춘다. 계속 돌면 "아직 하는 중"으로 읽힌다. */
+.switching.failed .spin {
+  animation: none;
+  border-color: var(--danger);
+  border-top-color: var(--danger);
+  position: relative;
+}
+.switching.failed .spin::after {
+  content: '!';
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--danger); font-weight: 700; font-size: 20px;
+}
+.switch-detail-tech {
+  font-size: 12px; color: var(--ink-dim);
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 6px;
+  padding: 7px 10px; max-width: 560px; word-break: break-all;
+}
 
 .retry-btn {
   border: 1px solid var(--line); background: var(--panel); color: var(--ink);

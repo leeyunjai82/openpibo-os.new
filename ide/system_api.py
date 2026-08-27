@@ -18,6 +18,7 @@ socket.io 를 또 붙이거나 다른 origin 으로 나가야 했다. 둘 다 �
 import asyncio
 import logging
 import os
+import re
 import subprocess
 
 import httpx
@@ -55,6 +56,20 @@ def read_system():
   info['ip'] = ip.strip()
   info['board'] = BOARD.name
   info['board_label'] = BOARD.label
+
+  # vcgencmd 는 "temp=47.2'C" 를 뱉는다. 그대로 화면에 올리면 기계 출력이 새어 나온다.
+  m = re.search(r'([\d.]+)', info.get('temp', ''))
+  info['temp_c'] = float(m.group(1)) if m else None
+
+  # 초 단위 uptime 을 사람이 읽는 형태로
+  try:
+    secs = int(float(info['uptime']))
+    d, rem = divmod(secs, 86400)
+    h, rem = divmod(rem, 3600)
+    mnt = rem // 60
+    info['uptime_text'] = (f'{d}일 ' if d else '') + (f'{h}시간 ' if d or h else '') + f'{mnt}분'
+  except (ValueError, KeyError):
+    info['uptime_text'] = None
 
   try:
     info['mem_used_percent'] = round(

@@ -150,8 +150,10 @@ async def watch(name, timeout=None):
     if active is False and waited > 3:
       yield _sse({
         'phase': 'failed', 'name': name, 'elapsed': round(waited, 1),
-        'reason': f'{unit_of(name)} 가 뜨지 않았습니다. '
-                  f'`systemctl status {unit_of(name)}` 를 확인하세요.',
+        # reason 은 화면에 그대로 뜬다. 아이와 교사가 읽는다.
+        # 개발자용 내용은 detail 로 따로 보낸다.
+        'reason': '서비스가 시작되지 않았습니다. 파이보를 다시 시작해 보세요.',
+        'detail': f'{unit_of(name)} inactive — systemctl status {unit_of(name)}',
       })
       return
 

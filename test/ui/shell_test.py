@@ -67,6 +67,16 @@ with sync_playwright() as pw:
     check('코딩 iframe 이 유지됨(편집 내용 보존)', pg.locator('#frame_code').count() == 1)
 
     # 9. 설정 모달
+    # 실패 화면: 스피너가 멈추고 실패로 보여야 한다
+    pg.wait_for_selector('#switching.failed', timeout=12000)
+    check('실패하면 스피너가 멈춤',
+          pg.eval_on_selector('.spin', 'e=>getComputedStyle(e).animationName') == 'none')
+    detail = pg.inner_text('#switch_detail')
+    check('실패 문장에 개발자 용어가 안 섞임',
+          'systemctl' not in detail and '.service' not in detail, detail)
+    check('개발자용 내용은 따로 표시', pg.is_visible('#switch_tech'),
+          pg.inner_text('#switch_tech'))
+
     pg.click('#btn_settings')
     pg.wait_for_selector('#modal_settings.on', timeout=3000)
     check('설정 모달 열림', pg.is_visible('#modal_settings'))
@@ -74,6 +84,8 @@ with sync_playwright() as pw:
     info = pg.inner_text('#info_kv')
     check('시스템 정보가 채워짐', '파이브레인' in info and '192.168.0.42' in info,
           info.replace('\n', ' ')[:80])
+    check('온도가 기계 출력이 아님', "temp=" not in info,
+          [l for l in info.split('\n') if 'C' in l][:1])
 
     pg.click('.settings-tabs button[data-pane="wifi"]')
     pg.wait_for_timeout(900)

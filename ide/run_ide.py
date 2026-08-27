@@ -21,6 +21,7 @@ import httpx
 
 from openpibo.board import BOARD
 
+import envelope
 import proxy
 import services
 import system_api
@@ -330,20 +331,32 @@ async def toggle_llm(enable: str = None):
   return _toggle('llm', enable)
 
 
+# /api/* 는 전부 같은 봉투를 쓴다 — {type, result, data, elapsed_ms, device}.
+# 여기만 날 dict 를 돌려주면 프론트가 두 가지 형식을 다뤄야 하고,
+# 규약이라고 문서에 적어 놓은 것이 곧 거짓말이 된다.
+
+def _unknown_service(env, name):
+  return env.fail(
+    f'알 수 없는 서비스입니다: {name} '
+    f'(쓸 수 있는 값: {", ".join(proxy.UPSTREAMS)})',
+    status=404,
+  )
+
+
 @app.get('/api/service')
 async def list_services():
   """뒤쪽 서비스 셋의 현재 상태."""
 
-  return JSONResponse(content={
-    n: await services.status(n) for n in proxy.UPSTREAMS
-  }, status_code=200)
+  with envelope.Envelope('service.list') as e:
+    return e.ok({n: await services.status(n) for n in proxy.UPSTREAMS})
 
 
 @app.get('/api/service/{name}')
 async def read_service(name: str):
-  if name not in proxy.UPSTREAMS:
-    return JSONResponse(content={'error': f'알 수 없는 서비스: {name}'}, status_code=404)
-  return JSONResponse(content=await services.status(name), status_code=200)
+  with envelope.Envelope('service.status') as e:
+    if name not in proxy.UPSTREAMS:
+      return _unknown_service(e, name)
+    return e.ok(await services.status(name))
 
 
 @app.post('/api/service/{name}/start')
@@ -355,18 +368,20 @@ async def start_service(name: str):
   아무것도 못 한다. 진행 상태를 보여줄 수가 없다.
   """
 
-  if name not in proxy.UPSTREAMS:
-    return JSONResponse(content={'error': f'알 수 없는 서비스: {name}'}, status_code=404)
-  services.start(name)
-  return JSONResponse(content=await services.status(name), status_code=202)
+  with envelope.Envelope('service.start') as e:
+    if name not in proxy.UPSTREAMS:
+      return _unknown_service(e, name)
+    services.start(name)
+    return e.ok(await services.status(name), status=202)
 
 
 @app.post('/api/service/{name}/stop')
 async def stop_service(name: str):
-  if name not in proxy.UPSTREAMS:
-    return JSONResponse(content={'error': f'알 수 없는 서비스: {name}'}, status_code=404)
-  services.stop(name)
-  return JSONResponse(content={'name': name, 'stopped': True}, status_code=200)
+  with envelope.Envelope('service.stop') as e:
+    if name not in proxy.UPSTREAMS:
+      return _unknown_service(e, name)
+    services.stop(name)
+    return e.ok({'name': name, 'stopped': True})
 
 
 @app.get('/api/service/{name}/events')
@@ -381,7 +396,8 @@ async def watch_service(name: str):
   """
 
   if name not in proxy.UPSTREAMS:
-    return JSONResponse(content={'error': f'알 수 없는 서비스: {name}'}, status_code=404)
+    with envelope.Envelope('service.events') as e:
+      return _unknown_service(e, name)
 
   return StreamingResponse(
     services.watch(name),

@@ -64,17 +64,23 @@ system_api.register(app, services, proxy, system_api.Hooks(
 # run_ide.py 와 같은 서비스 라우트
 from fastapi.responses import StreamingResponse
 
+# run_ide.py 와 **같은 봉투**를 쓴다. 하니스가 날 dict 를 주면
+# UI 시험이 실물과 다른 것을 검증하게 된다.
+import envelope
+
 @app.get('/api/service/{name}')
 async def read_service(name: str):
-    if name not in proxy.UPSTREAMS:
-        return JSONResponse({'error': name}, status_code=404)
-    return JSONResponse(await services.status(name))
+    with envelope.Envelope('service.status') as e:
+        if name not in proxy.UPSTREAMS:
+            return e.fail(f'알 수 없는 서비스입니다: {name}', status=404)
+        return e.ok(await services.status(name))
 
 @app.post('/api/service/{name}/start')
 async def start_service(name: str):
-    if name not in proxy.UPSTREAMS:
-        return JSONResponse({'error': name}, status_code=404)
-    return JSONResponse(await services.status(name), status_code=202)
+    with envelope.Envelope('service.start') as e:
+        if name not in proxy.UPSTREAMS:
+            return e.fail(f'알 수 없는 서비스입니다: {name}', status=404)
+        return e.ok(await services.status(name), status=202)
 
 @app.get('/api/service/{name}/events')
 async def watch_service(name: str):
