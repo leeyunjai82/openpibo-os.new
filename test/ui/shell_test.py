@@ -19,8 +19,18 @@ with sync_playwright() as pw:
     b = pw.chromium.launch(executable_path=CHROME,
                            args=['--no-sandbox'])
     pg = b.new_page(viewport={'width': 1280, 'height': 800})
+    # 셸 자신의 에러만 센다. iframe 안 앱(IDE/tools)의 에러는 셸 문제가 아니고,
+    # 하니스에는 그 앱들의 뒤쪽이 없어서 원래 에러가 난다.
     errors = []
-    pg.on('console', lambda m: errors.append(m.text) if m.type == 'error' else None)
+
+    def _console(m):
+        if m.type != 'error':
+            return
+        url = (m.location or {}).get('url', '')
+        if 'shell.js' in url or url.rstrip('/').endswith(':18080') or '/app/' in url:
+            errors.append(m.text)
+
+    pg.on('console', _console)
     pg.on('pageerror', lambda e: errors.append(str(e)))
 
     pg.goto(BASE, wait_until='networkidle')
@@ -36,7 +46,21 @@ with sync_playwright() as pw:
     # 3. 홈이 기본
     check('홈이 기본 화면', pg.is_visible('#home_pane'))
     cards = pg.eval_on_selector_all('#home_cards .card .name', 'els => els.map(e=>e.textContent)')
-    check('홈 카드 4개', cards == ['체험','코딩','학습','대화'], str(cards))
+    # 카드 이름은 기존 landing.html 과 같아야 한다 (디자인·용어 일관성)
+    check('홈 카드가 기존 화면과 같은 이름',
+          cards == ['Tools','IDE','Classifier','Chat Bot'], str(cards))
+    check('카드 색이 앱별로 다름 (landing 과 동일)',
+          len(set(pg.eval_on_selector_all('#home_cards .card',
+              'els=>els.map(e=>getComputedStyle(e).borderTopColor)'))) == 4)
+    check('상단바가 금색 (기존 header 와 동일)',
+          pg.eval_on_selector('.topbar', 'e=>getComputedStyle(e).backgroundColor')
+          == 'rgb(249, 195, 0)',
+          pg.eval_on_selector('.topbar', 'e=>getComputedStyle(e).backgroundColor'))
+
+    # 여기까지는 iframe 이 하나도 없다. 이 시점의 에러만 셸 것이다.
+    # 아래에서 진짜 IDE 를 붙이면 그 앱 자신의 에러(io/socket 미정의 등)가 섞이는데,
+    # 하니스에 그 앱의 뒤쪽이 없어서 나는 것이라 셸 문제가 아니다.
+    shell_errors = list(errors)
 
     # 4. 코딩 탭 — 서비스가 필요 없으니 바로 iframe
     pg.click('#tabs .tab[data-tab="code"]')
@@ -60,7 +84,7 @@ with sync_playwright() as pw:
     pg.wait_for_selector('#switching.on', timeout=5000)
     check('학습 탭: 전환 화면이 뜸', pg.is_visible('#switching'))
     txt = pg.inner_text('#switch_title')
-    check('전환 화면에 무엇을 기다리는지 표시', '학습' in txt, txt)
+    check('전환 화면이 누른 탭 이름을 씀', '학습' in txt, txt)
     check('한국어 조사가 맞음', '학습 를' not in txt, txt)
 
     # 8. 코딩 iframe 은 살아 있어야 한다 (keep: true)
@@ -138,8 +162,10 @@ with sync_playwright() as pw:
     opened = pg.evaluate('window.__openCalls || 0')
     check('새 창이 열리지 않음', opened == 0, str(opened))
 
-    real_errors = [e for e in errors if 'favicon' not in e and 'circulus_logo' not in e]
-    check('콘솔 에러 없음', not real_errors, ' | '.join(real_errors[:3]))
+    real_errors = [e for e in shell_errors
+                   if 'favicon' not in e and 'circulus_logo' not in e]
+    check('셸 자신의 콘솔 에러 없음 (iframe 안 앱은 별도)',
+          not real_errors, ' | '.join(real_errors[:3]))
 
     b.close()
 

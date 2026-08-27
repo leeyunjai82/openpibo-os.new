@@ -41,6 +41,8 @@ async def lifespan(app):
 app = FastAPI(lifespan=lifespan)
 templates = Jinja2Templates(directory=os.path.join(ROOT, 'ide/templates'))
 app.mount('/static', StaticFiles(directory=os.path.join(ROOT, 'ide/static')), name='static')
+app.mount('/svg', StaticFiles(directory=os.path.join(ROOT, 'ide/svg')), name='svg')
+app.mount('/webfonts', StaticFiles(directory=os.path.join(ROOT, 'ide/webfonts')), name='webfonts')
 
 @app.get('/', response_class=HTMLResponse)
 async def shell(request: Request):
@@ -52,8 +54,8 @@ async def shell_tab(request: Request, tab: str = ''):
     return templates.TemplateResponse(request, 'shell.html', {'board': BOARD_INFO})
 
 @app.get('/ide', response_class=HTMLResponse)
-async def ide():
-    return '<html><body>FAKE-IDE</body></html>'
+async def ide(request: Request):
+    return templates.TemplateResponse(request, 'index.html', {'board': BOARD_INFO})
 
 system_api.register(app, services, proxy, system_api.Hooks(
     code_running=lambda: STATE['running'],

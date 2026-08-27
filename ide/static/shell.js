@@ -22,12 +22,24 @@ const BOARD = window.__BOARD__ || { name: 'pibo', label: '파이보', features: 
  *          IDE 는 살린다 — 편집 중이던 코드가 날아가면 안 된다.
  *          나머지는 버린다 — 어차피 서비스가 꺼져서 죽은 화면이 된다.
  */
+/*
+ * 아이콘·이름·설명은 landing.html 의 카드와 **같은 것**을 쓴다.
+ * 아이콘은 Font Awesome (all.min.css + webfonts 가 레포에 들어 있다 — CDN 아님).
+ */
 const TABS = [
-  { id: 'home',  name: '홈',     ico: '🏠', kind: 'home' },
-  { id: 'play',  name: '체험',   ico: '🎮', kind: 'frame', src: '/tools/',    service: 'tools' },
-  { id: 'code',  name: '코딩',   ico: '🧩', kind: 'frame', src: '/ide',       keep: true },
-  { id: 'learn', name: '학습',   ico: '🎓', kind: 'frame', src: '/classify/', service: 'classify' },
-  { id: 'chat',  name: '대화',   ico: '💬', kind: 'frame', src: '/llm/',      service: 'llm' },
+  { id: 'home',  name: '홈',    tab: '홈',   icon: 'fa-house', kind: 'home' },
+  { id: 'play',  name: 'Tools', tab: '체험', icon: 'fa-screwdriver-wrench',
+    kind: 'frame', src: '/tools/',    service: 'tools',
+    desc: '모션, 비전, 음성<br>센서 제어' },
+  { id: 'code',  name: 'IDE',   tab: '코딩', icon: 'fa-code',
+    kind: 'frame', src: '/ide',       keep: true,
+    desc: '코드 작성 및<br>실행 환경' },
+  { id: 'learn', name: 'Classifier', tab: '학습', icon: 'fa-images',
+    kind: 'frame', src: '/classify/', service: 'classify',
+    desc: '이미지 분류<br>학습 도구' },
+  { id: 'chat',  name: 'Chat Bot',   tab: '대화', icon: 'fa-comment',
+    kind: 'frame', src: '/llm/',      service: 'llm',
+    desc: 'AI 챗봇<br>대화 인터페이스' },
 ];
 
 const byId = (id) => document.getElementById(id);
@@ -183,7 +195,7 @@ function ensureService(tab) {
 
     const box = byId('switching');
     box.classList.remove('failed');
-    byId('switch_title').textContent = `${tab.name} 준비 중`;
+    byId('switch_title').textContent = `${tab.tab} 준비 중`;
     byId('switch_detail').textContent = '';
     byId('switch_tech').style.display = 'none';
     byId('switch_retry').style.display = 'none';
@@ -196,7 +208,7 @@ function ensureService(tab) {
       box.classList.add('failed');
       document.querySelectorAll('#switch_steps span').forEach(
         (el) => { el.className = ''; });
-      byId('switch_title').textContent = `${josa(tab.name, '을', '를')} 열지 못했습니다`;
+      byId('switch_title').textContent = `${josa(tab.tab, '을', '를')} 열지 못했습니다`;
       byId('switch_detail').textContent = msg;
       // 개발자용 내용은 따로, 작게. 아이가 읽는 문장과 섞지 않는다.
       const t = byId('switch_tech');
@@ -252,7 +264,7 @@ function paintBadges(s) {
     el.classList.toggle('on', !!on);
     if (text) el.querySelector('span').textContent = text;
   };
-  const owner = s.camera_owner ? (TABS.find((t) => t.service === s.camera_owner) || {}).name : null;
+  const owner = s.camera_owner ? (TABS.find((t) => t.service === s.camera_owner) || {}).tab : null;
   set('badge_cam', !!s.camera_owner, owner ? `카메라 사용중 (${owner})` : '카메라 사용중');
   set('badge_run', s.code_running, '코드 실행중');
   set('badge_model', s.model_loading, '모델 로딩중');
@@ -292,7 +304,7 @@ function showSettingsPane(id) {
 
 async function loadInfo() {
   const dl = byId('info_kv');
-  dl.innerHTML = '<dt>불러오는 중</dt><dd>…</dd>';
+  dl.innerHTML = '<div class="si-item"><dt>불러오는 중</dt><dd>…</dd></div>';
   try {
     const d = await api('/api/system/info');
     const rows = [
@@ -306,10 +318,12 @@ async function loadInfo() {
       ['가동시간', d.uptime_text || '-'],
     ];
     dl.innerHTML = rows
-      .map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(String(v ?? '-'))}</dd>`)
+      .map(([k, v]) =>
+        `<div class="si-item"><dt>${esc(k)}</dt>` +
+        `<dd>${esc(String(v ?? '-'))}</dd></div>`)
       .join('');
   } catch (err) {
-    dl.innerHTML = `<dt>오류</dt><dd>${esc(err.message)}</dd>`;
+    dl.innerHTML = `<div class="si-item"><dt>오류</dt><dd>${esc(err.message)}</dd></div>`;
   }
 }
 
@@ -412,13 +426,13 @@ function buildTabs() {
   TABS.forEach((t) => {
     const a = document.createElement('button');
     a.className = 'tab'; a.dataset.tab = t.id; a.type = 'button';
-    a.textContent = t.name;
+    a.textContent = t.tab;
     a.onclick = () => go(t.id);
     top.appendChild(a);
 
     const b = document.createElement('button');
     b.className = 'tab'; b.dataset.tab = t.id; b.type = 'button';
-    b.innerHTML = `<span class="ico">${t.ico}</span>${esc(t.name)}`;
+    b.innerHTML = `<i class="ico fa-solid ${t.icon}"></i>${esc(t.tab)}`;
     b.onclick = () => go(t.id);
     bottom.appendChild(b);
   });
@@ -427,17 +441,17 @@ function buildTabs() {
 function buildHomeCards() {
   const wrap = byId('home_cards');
   TABS.filter((t) => t.id !== 'home').forEach((t) => {
-    const desc = {
-      play: '카메라, 소리, 움직임을 눌러서 바로 써보기',
-      code: '블록과 파이썬으로 프로그램 만들기',
-      learn: '사진과 자세를 가르쳐서 알아맞히게 하기',
-      chat: '파이보와 이야기 나누기',
-    }[t.id] || '';
     const b = document.createElement('button');
-    b.className = 'card'; b.type = 'button';
-    b.innerHTML = `<span class="ico">${t.ico}</span>` +
-                  `<span class="name">${esc(t.name)}</span>` +
-                  `<span class="desc">${esc(desc)}</span>`;
+    b.className = 'card'; b.type = 'button'; b.dataset.tab = t.id;
+    // desc 는 우리가 쓴 고정 문자열이라 <br> 을 그대로 둔다.
+    // 사용자 입력이 아니므로 esc 대상이 아니다.
+    b.innerHTML =
+      `<span class="card-icon"><i class="fa-solid ${t.icon}"></i></span>` +
+      `<span class="card-body">` +
+        `<span class="name">${esc(t.name)}</span>` +
+        `<span class="desc">${t.desc || ''}</span>` +
+      `</span>` +
+      `<span class="card-btn">열기 →</span>`;
     b.onclick = () => go(t.id);
     wrap.appendChild(b);
   });
