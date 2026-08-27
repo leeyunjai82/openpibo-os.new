@@ -17,13 +17,19 @@
   <link rel="stylesheet" href="../static/jquery.jsonview.min.css" />
   <link rel="shortcut icon" href="../static/icon.png?ver=240319v1" type="image/x-icon" />
 
+  <!-- 서버가 심어 주는 보드 정보. openpibo/profiles/<board>.toml 의 [features] 다.
+       board_filter.js 와 화면 문구가 이걸 본다. -->
+  <script>
+    window.__BOARD__ = {{ board | tojson }};
+  </script>
   <script src="../static/ko2en.js?ver=240319v4"></script>
   <script src="../static/blockly_compressed.js?ver=240319v1"></script>
   <script src="../static/blocks_compressed.js?ver=240319v1"></script>
   <script src="../static/python_compressed.js?ver=240319v1"></script>
+  <script src="../static/board_filter.js?ver=260827v1"></script>
   <script src="../static/customblock.js?ver=240319v34"></script>
   <script src="../static/customblock_callback.js?ver=240319v34"></script>
-  <script src="../static/customblock_toolbox.js?ver=240319v34"></script>
+  <script src="../static/customblock_toolbox.js?ver=260827v1"></script>
   <script src="../static/jquery-3.1.1.min.js"></script>
   <script src="../static/field-bitmap.js"></script>
   <script src="../static/jquery.jsonview.min.js"></script>

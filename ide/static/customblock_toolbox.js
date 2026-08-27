@@ -838,6 +838,7 @@ let toolbox = (lang) => {
           {
             "kind": "block",
             "type": "audio_record",
+            "requires": "can_record_audio",
             "inputs":{
               "filename":{
                 "shadow": {
@@ -907,6 +908,7 @@ let toolbox = (lang) => {
           {
             "kind": "block",
             "type": "device_eye_on",
+            "requires": "has_mcu",
             "inputs":{
               "val0": {
                 "shadow": {
@@ -961,6 +963,7 @@ let toolbox = (lang) => {
           {
             "kind": "block",
             "type": "device_eye_colour_on",
+            "requires": "has_mcu",
             "inputs":{
               "left":{
                 "shadow": {
@@ -977,99 +980,112 @@ let toolbox = (lang) => {
           {
             "kind": "block",
             "type": "device_get_dc",
+            "requires": "has_mcu",
           },
           {
             "kind": "block",
             "type": "device_get_battery",
+            "requires": "has_mcu",
           },
           {
             "kind": "block",
             "type": "device_get_system",
+            "requires": "has_mcu",
           },
           {
             "kind": "block",
             "type": "device_get_pir",
+            "requires": "has_mcu",
           },
           {
             "kind": "block",
             "type": "device_get_touch",
+            "requires": "has_mcu",
           },
           {
             "kind": "block",
             "type": "device_get_button",
+            "requires": "has_mcu",
           },
-          // {
-          //   "kind": "block",
-          //   "type": "device_pibrain_button",
-          // },
-          // {
-          //   "kind": "block",
-          //   "type": "device_pibrain_led_on",
-          //   "inputs":{
-          //     "val0": {
-          //       "shadow": {
-          //         "type": "math_number",
-          //         "fields": {
-          //           "NUM": "0"
-          //         }
-          //       }
-          //     },
-          //     "val1": {
-          //       "shadow": {
-          //         "type": "math_number",
-          //         "fields": {
-          //           "NUM": "0"
-          //         }
-          //       }
-          //     },
-          //     "val2": {
-          //       "shadow": {
-          //         "type": "math_number",
-          //         "fields": {
-          //           "NUM": "0"
-          //         }
-          //       }
-          //     },
-          //   }
-          // },
-          // {
-          //   "kind": "block",
-          //   "type": "device_pibrain_led_colour_on",
-          //   "inputs":{
-          //     "color":{
-          //       "shadow": {
-          //         "type": "variables_get",
-          //       }
-          //     }
-          //   }
-          // },
-          // {
-          //   "kind": "block",
-          //   "type": "device_pibrain_led_off",
-          // },
-          // {
-          //   "kind": "block",
-          //   "type": "device_pibrain_uart_init",
-          // },
-          // {
-          //   "kind": "block",
-          //   "type": "device_pibrain_uart_send",
-          //   "inputs":{
-          //     "command":{
-          //       "shadow": {
-          //         "type": "text",
-          //         "fields": {
-          //           "TEXT": ""
-          //           // "TEXT": translations['image_filename'][lang]
-          //         }
-          //       }
-          //     }
-          //   }
-          // },
-          // {
-          //   "kind": "block",
-          //   "type": "device_pibrain_uart_close",
-          // },
+          {
+            "kind": "block",
+            "type": "device_pibrain_button",
+            "requires": "has_buttons",
+          },
+          {
+            "kind": "block",
+            "type": "device_pibrain_led_on",
+            "requires": "has_ws2812",
+            "inputs":{
+              "val0": {
+                "shadow": {
+                  "type": "math_number",
+                  "fields": {
+                    "NUM": "0"
+                  }
+                }
+              },
+              "val1": {
+                "shadow": {
+                  "type": "math_number",
+                  "fields": {
+                    "NUM": "0"
+                  }
+                }
+              },
+              "val2": {
+                "shadow": {
+                  "type": "math_number",
+                  "fields": {
+                    "NUM": "0"
+                  }
+                }
+              },
+            }
+          },
+          {
+            "kind": "block",
+            "type": "device_pibrain_led_colour_on",
+            "requires": "has_ws2812",
+            "inputs":{
+              "color":{
+                "shadow": {
+                  "type": "variables_get",
+                }
+              }
+            }
+          },
+          {
+            "kind": "block",
+            "type": "device_pibrain_led_off",
+            "requires": "has_ws2812",
+          },
+          {
+            "kind": "block",
+            "type": "device_pibrain_uart_init",
+            "requires": "has_usb_uart",
+          },
+          {
+            "kind": "block",
+            "type": "device_pibrain_uart_send",
+            "requires": "has_usb_uart",
+            "inputs":{
+              "command":{
+                "shadow": {
+                  "type": "text",
+                  "fields": {
+                    "TEXT": ""
+                    // "TEXT": translations['image_filename'][lang]
+                  }
+                }
+              }
+            }
+          },
+          {
+            "kind": "block",
+            "type": "device_pibrain_uart_close",
+            "requires": "has_usb_uart",
+          },
         ],
         "colour": color_type["device"],
         "cssConfig": {
@@ -1078,6 +1094,9 @@ let toolbox = (lang) => {
       },
       { // Motion
         "kind": "category",
+        // 다리로 움직이는 블록 묶음. 다리가 없는 보드에서는 카테고리째 안 보인다.
+        // board_filter.js 가 window.__BOARD__.features.has_legs 를 보고 걷어낸다.
+        "requires": "has_legs",
         "name": translations['motion'][lang],
         // "hidden":"true",
         "contents": [
@@ -2780,9 +2799,13 @@ let toolbox = (lang) => {
     ]
   } 
 }
-const toolbox_en = toolbox('en');
-const toolbox_ko = toolbox('ko');
-// const toolbox_cn = toolbox('cn');
+// board_filter.js 가 보드에 없는 블록을 걷어낸다.
+// 로드가 안 됐으면(옛 캐시 등) 그냥 원본을 쓴다 — 다 보이는 게 안 보이는 것보다 낫다.
+const _boardFilter = (typeof applyBoardFilter === 'function') ? applyBoardFilter : (t) => t;
+
+const toolbox_en = _boardFilter(toolbox('en'));
+const toolbox_ko = _boardFilter(toolbox('ko'));
+// const toolbox_cn = _boardFilter(toolbox('cn'));
 
 const toolbox_dict = {
   "en": toolbox_en,

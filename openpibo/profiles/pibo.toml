@@ -73,6 +73,8 @@ has_legs     = true            # 다리 → motion.move(vx, vy) 노출
 has_mcu      = true            # ATmega328P → system/mcu_control.py, uart_ctrl
 has_buttons  = false           # GPIO 버튼 4개 (파이브레인 전용)
 has_ws2812   = false           # 직결 WS2812 (파이보는 MCU 경유로 눈 LED 제어)
+has_usb_uart = false           # USB 시리얼로 외부 장치 붙이기 (openpibo.usb_uart)
+can_record_audio = true        # audio.record() 블록 노출 여부
 
 # ── 확인 필요 ─────────────────────────────────────────────
 # docs/plan/00-decisions.md 2.4 — 데이터시트/실기로 확정하기 전까지 하드코딩하지 않는다.

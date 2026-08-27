@@ -62,6 +62,10 @@ has_legs     = false           # 다리가 없다 → motion.move() 를 노출�
 has_mcu      = false           # MCU 가 없다 → mcu_control / uart_ctrl 미사용
 has_buttons  = true            # GPIO 4, 17, 27, 26
 has_ws2812   = true            # GPIO 12 에 WS2812 1개 직결
+has_usb_uart = true            # USB 시리얼로 외부 장치 붙이기 (openpibo.usb_uart)
+can_record_audio = false       # pibrain 레포가 audio_record 블록을 꺼 놨던 것을 그대로 옮긴 값.
+                               # 하드웨어로 확인한 사실이 아니다. 마이크가 되는 것이
+                               # 확인되면 true 로 올릴 것.
 
 # ── 확인 필요 ─────────────────────────────────────────────
 [unverified]

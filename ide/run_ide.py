@@ -18,6 +18,8 @@ from starlette.websockets import WebSocketDisconnect
 from fastapi.templating import Jinja2Templates
 from contextlib import asynccontextmanager
 
+from openpibo.board import BOARD
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
   asyncio.create_task(periodic_system_update())
@@ -45,6 +47,17 @@ app.add_middleware(
 codeExec = {
   'python': 'python3',
   'shell': 'sh',
+}
+
+# 프론트로 넘길 보드 정보. openpibo/profiles/<board>.toml 이 원본이다.
+# board_filter.js 가 features 를 보고 툴박스에서 없는 블록을 걷어낸다.
+# 서버가 주는 것만 프론트가 안다 — 브라우저가 보드를 짐작하게 두지 않는다.
+BOARD_INFO = {
+  'name': BOARD.name,
+  'label': BOARD.label,
+  'features': dict(BOARD.features),
+  'display': {'width': BOARD.display.width, 'height': BOARD.display.height},
+  'camera': {'width': BOARD.camera.width, 'height': BOARD.camera.height},
 }
 
 protectList = [
@@ -125,12 +138,18 @@ async def get_directory(folderName: str):
 # ── 랜딩 페이지 ──────────────────────────────────────────────
 @app.get('/', response_class=HTMLResponse)
 async def read_landing(request: Request):
-  return templates.TemplateResponse("landing.html", {"request": request})
+  return templates.TemplateResponse("landing.html", {"request": request, "board": BOARD_INFO})
 
 # ── IDE ───────────────────────────────────────────────────────
 @app.get('/ide', response_class=HTMLResponse)
 async def read_ide(request: Request):
-  return templates.TemplateResponse("index.html", {"request": request})
+  return templates.TemplateResponse("index.html", {"request": request, "board": BOARD_INFO})
+
+
+@app.get('/api/board')
+async def read_board():
+  """이 기기가 어느 보드인지. 프론트/도구/시험 스크립트 공용."""
+  return JSONResponse(content=BOARD_INFO, status_code=200)
 
 
 @app.get("/download")
