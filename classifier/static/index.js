@@ -131,7 +131,8 @@ async function prompt_popup(message, defaultValue = '') {
 }
 
 document.getElementById("logo_bt").addEventListener("click", () => {
-    location.href = '/';
+    // 셸 안이면 맨 바깥 창을 옮긴다 (셸 안에 셸이 겹치지 않게)
+    (window.top || window).location.href = '/';
 });
 
 // --- SSE 카메라 스트림 (Socket.IO 대체) ---

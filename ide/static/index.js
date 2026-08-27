@@ -114,7 +114,9 @@ document.getElementById('restore_bt').addEventListener('click', async () => {
 });
 
 document.getElementById('logo_bt').addEventListener('click', () => {
-  location.href = `http://${location.hostname}`;
+  // 셸(iframe) 안이면 맨 바깥 창을 옮긴다.
+  // iframe 자신을 옮기면 셸 안에 셸이 또 뜬다.
+  (window.top || window).location.href = '/';
 });
 
 // ── Constants ────────────────────────────────────────────────

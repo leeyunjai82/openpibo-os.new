@@ -144,7 +144,8 @@ async function prompt_popup(message, defaultValue = '') {
 }
 
 document.getElementById("logo_bt").addEventListener("click", function () {
-  location.href = '/';
+  // 셸 안이면 맨 바깥 창을 옮긴다 (셸 안에 셸이 겹치지 않게)
+  (window.top || window).location.href = '/';
 });
 
 // 프록시 아래에서는 /tools/socket.io 로 붙어야 한다.

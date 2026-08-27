@@ -158,6 +158,14 @@ function mountFrame(tab) {
     f.id = 'frame_' + tab.id;
     f.className = 'frame';
     f.title = tab.name;
+    // 전체화면을 명시적으로 허용해 둔다.
+    //
+    // 지금은 없어도 된다 — 같은 origin 이라 브라우저가 기본으로 허용한다
+    // (A/B 로 확인했다: allow 없이도 앱의 전체화면 버튼이 동작한다).
+    // 명시하는 이유는 나중에 sandbox 를 걸거나 origin 이 갈릴 때
+    // 조용히 죽는 것을 막기 위해서다. 아래 시험이 이걸 지킨다.
+    f.setAttribute('allow', 'fullscreen');
+    f.allowFullscreen = true;
     // 같은 origin 이라 sandbox 를 걸면 오히려 앱이 망가진다.
     // 1단계에서 origin 을 합쳤기 때문에 그냥 붙여도 된다.
     f.src = tab.src;

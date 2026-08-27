@@ -90,6 +90,26 @@ with sync_playwright() as pw:
     check('셸 안: 기능 버튼은 남음 (메뉴)', fr.locator('#sidebar_toggle_btn').is_visible())
     check('셸 안: 기능 버튼은 남음 (언어)', fr.locator('#lang-toggle').is_visible())
 
+    # 감춘 것에 기능이 붙어 있지 않은지, 남긴 것이 실제로 동작하는지.
+    # #logo_bt 는 '홈으로'였다 — 셸의 브랜드 버튼과 홈 탭이 같은 일을 하므로
+    # 감춰도 잃는 기능이 없다. 대신 iframe 안에서 '/' 로 가면 셸 안에 셸이
+    # 겹쳐 뜨므로, 핸들러가 맨 바깥 창을 옮기게 고쳤다.
+    home_src = pg.eval_on_selector(
+        '#frame_code',
+        'f=>{const s=[...f.contentDocument.scripts].map(x=>x.src).find(x=>x.includes("index.js"));'
+        ' return s||"";}')
+    check('앱 index.js 가 로드됨', bool(home_src), home_src)
+
+    # 전체화면 버튼: 실제로 눌러서 들어가는지 본다.
+    # 눌러도 아무 일이 없으면 헤더가 남아 있어도 쓸모가 없다.
+    fr.locator('#fullscreen_bt').click()
+    pg.wait_for_timeout(700)
+    entered = pg.eval_on_selector('#frame_code',
+                                  'f=>!!f.contentDocument.fullscreenElement')
+    check('셸 안: 앱 전체화면 버튼이 실제로 동작', entered)
+    pg.evaluate('()=>{ if (document.fullscreenElement) document.exitFullscreen(); }')
+    pg.wait_for_timeout(400)
+
     # 포트로 직접 열면 예전 그대로여야 한다
     pg_d = b.new_page(viewport={'width': 1280, 'height': 800})
     pg_d.goto(BASE + '/ide', wait_until='networkidle')
