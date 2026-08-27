@@ -15,6 +15,16 @@ pibo = None
 
 def init_pibo():
   global pibo
+  # 이 tools 서버는 파이보 것이다 (socket.io, :50000).
+  # 파이브레인은 REST+SSE(:50040)로 따로 만들어져 있었고, 지금은 병합하지 않았다
+  # (docs/plan/00-decisions.md 1.4). 원본은 tools/legacy_pibrain/ 에 보존돼 있다.
+  # 로드맵 2단계에서 SPA shell 로 양쪽을 대체하며 하나가 된다.
+  from openpibo.board import BOARD
+  if BOARD.name != 'pibo':
+    logging.warning(
+      f'[tools] 이 서버는 파이보용입니다. 지금 보드는 "{BOARD.label}"({BOARD.name}) 입니다. '
+      f'MCU/모션 기능은 동작하지 않습니다. 로드맵 2단계에서 통합됩니다.'
+    )
   from lib import Pibo
   pibo = Pibo(emit)
   os.system('/home/pi/.pyenv/bin/python3 /home/pi/openpibo-os/system/network_disp.py')

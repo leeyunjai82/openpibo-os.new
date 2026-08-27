@@ -12,10 +12,10 @@ from fastapi.responses import FileResponse, JSONResponse, StreamingResponse # Re
 from fastapi.middleware.cors import CORSMiddleware
 
 # --- OpenPibo Hardware Imports ---
-from openpibo.oled import Oled
+from openpibo.oled import get_display
 from openpibo.audio import Audio
 from openpibo.motion import Motion
-from openpibo.device import Device
+from openpibo.device import get_device
 from openpibo.vision_camera import Camera
 
 # ==============================================================================
@@ -34,10 +34,10 @@ app.add_middleware(
 
 # --- Initialize Hardware Objects (globally, once) ---
 try:
-    oled_obj = Oled()
+    oled_obj = get_display()      # 보드에 맞는 디스플레이
     audio_obj = Audio()
     motion_obj = Motion()
-    device_obj = Device()
+    device_obj = get_device()     # 보드에 맞는 device
     camera_obj = Camera()
     os.system('sudo /home/pi/.pyenv/bin/python3 /home/pi/openpibo-os/system/network_disp.py')
 except Exception as e:

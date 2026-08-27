@@ -14,6 +14,7 @@ import os
 import time
 import requests
 from . import napi_host, sapi_host
+from .board import BOARD
 from .modules.speech.mtranslate import translate
 
 import numpy as np
@@ -25,6 +26,19 @@ from .modules.speech.mtts import (
     TextToSpeech,
 )
 import openpibo_models
+
+
+def _arecord(timeout):
+  """
+  보드에 맞는 arecord 명령을 만든다.
+
+  파이보 16000/S32_LE, 파이브레인 44100/S16_LE — 마이크 하드웨어가 다르다.
+  openpibo.audio.Audio.record() 와 같은 값을 쓴다. 두 군데에 적으면 어긋난다.
+  """
+
+  mic = BOARD.mic
+  return (f'arecord -D {mic.device} -c{mic.channels} -r {mic.rate} '
+          f'-f {mic.format} -d {timeout} -t wav -q')
 #current_path = os.path.dirname(os.path.realpath(__file__))
 
 os.environ["ORT_LOGGING_LEVEL"] = "3"
@@ -133,9 +147,9 @@ Functions:
     """
 
     if verbose == True:
-      os.system(f'arecord -D plug:dmic_sv -c2 -r 16000 -f S32_LE -d {timeout} -t wav -q -vv -V streo stream.raw;sox stream.raw -c 1 -b 16 {filename};rm stream.raw')
+      os.system(f'{_arecord(timeout)} -vv -V stereo stream.raw;sox stream.raw -c 1 -b 16 {filename};rm stream.raw')
     else:
-      os.system(f'arecord -D plug:dmic_sv -c2 -r 16000 -f S32_LE -d {timeout} -t wav -q stream.raw;sox stream.raw -q -c 1 -b 16 {filename};rm stream.raw')
+      os.system(f'{_arecord(timeout)} stream.raw;sox stream.raw -q -c 1 -b 16 {filename};rm stream.raw')
 
     res = requests.post("https://o-vapi.circul.us/stt" + '/stt', files={'uploadFile':open(filename, 'rb')})
 
@@ -250,9 +264,9 @@ Functions:
     """
     # 녹음 (Speech 클래스와 동일)
     if verbose:
-      os.system(f'arecord -D plug:dmic_sv -c2 -r 16000 -f S32_LE -d {timeout} -t wav -q -vv -V streo stream.raw;sox stream.raw -c 1 -b 16 {filename};rm stream.raw')
+      os.system(f'{_arecord(timeout)} -vv -V stereo stream.raw;sox stream.raw -c 1 -b 16 {filename};rm stream.raw')
     else:
-      os.system(f'arecord -D plug:dmic_sv -c2 -r 16000 -f S32_LE -d {timeout} -t wav -q stream.raw;sox stream.raw -q -c 1 -b 16 {filename};rm stream.raw')
+      os.system(f'{_arecord(timeout)} stream.raw;sox stream.raw -q -c 1 -b 16 {filename};rm stream.raw')
 
     # 다운로드
     #python3 -c "

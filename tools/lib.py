@@ -4,10 +4,11 @@ from openpibo.vision_face import Face
 from openpibo.vision_detect import Detect
 from openpibo.vision_classify import CustomClassifier
 from openpibo.audio import Audio
-from openpibo.oled import Oled
+from openpibo.oled import get_display
 from openpibo.speech import Speech, Dialog
 from openpibo.motion import Motion
-from openpibo.device import Device
+from openpibo.device import get_device
+from openpibo.board import BOARD
 import asyncio
 import numpy as np
 import time,datetime
@@ -47,9 +48,11 @@ class Pibo:
       logging.error(f'[motion_start] Error: {ex}')
 
     asyncio.run(self.emit('onoff', True, callback=None))
-    self.dev = Device()
+    # 파이보/파이브레인에 맞는 클래스. 두 클래스는 API 가 같지 않다 —
+    # 파이브레인에는 배터리도 PIR 도 없다 (openpibo.device 모듈 docstring 참고).
+    self.dev = get_device()
     self.device_start()
-    self.ole = Oled()
+    self.ole = get_display()
     self.vision_type = "camera"
     self.vision_sleep = True
     self.chat_list = []
@@ -62,7 +65,8 @@ class Pibo:
     self.det = Detect()
     self.dialog = Dialog()
 
-    self.mot.set_motors(self.motion_d, movetime=1000)
+    if BOARD.features.has_legs:
+      self.mot.set_motors(self.motion_d, movetime=1000)   # 기본 자세
     self.det.load_hand_gesture_model()
     Thread(name='vision_loop', target=self.vision_loop, args=(), daemon=True).start()
 
@@ -386,6 +390,13 @@ class Pibo:
     with open('/home/pi/config.json', 'r') as f:
       tmp = json.load(f)
       self.neopixel_value = tmp['eye'].split(',') if 'eye' in tmp else [0, 0, 0, 0, 0, 0]
+
+    # 아래는 전부 MCU 패킷(#30 #14 #23 #40)이다. MCU 가 없는 보드에서는
+    # 시리얼이 없어 device_loop 이 예외로 계속 돈다. 아예 띄우지 않는다.
+    if not BOARD.features.has_mcu:
+      logging.info(f'[device_start] {BOARD.label}: MCU 없음 — device_loop 생략')
+      return
+
     Thread(name='device_loop', target=self.device_loop, args=(), daemon=True).start()
     self.send_message("30", 'on')
     time.sleep(0.1)

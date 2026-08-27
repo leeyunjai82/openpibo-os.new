@@ -76,7 +76,7 @@ examples/pibrain/
 requirements/      의존성 명세                        → requirements/README.md
 docs/plan/         통합·개편 계획                     → docs/plan/README.md
 tools/measure/     실측 스크립트                      → tools/measure/README.md
-test/js/           보드 필터 시험
+test/               하드웨어 없이 도는 시험 (bash test/run.sh)
 ```
 
 ---
@@ -106,8 +106,8 @@ mkdir -p .tmp
 OPENPIBO_HOME=$PWD/.tmp OPENPIBO_BOARD=pibrain python3 -c \
   "from openpibo.board import BOARD; print(BOARD.name, BOARD.label)"
 
+bash test/run.sh                           # 시험 전부 (하드웨어 불필요)
 bash requirements/check.sh base server     # 명세와 환경이 맞는지
-node test/js/board_filter.test.js          # 툴박스 필터
 ```
 
 `requirements/device.txt` 와 `vision.txt` 는 **라즈베리파이가 아니면 대부분

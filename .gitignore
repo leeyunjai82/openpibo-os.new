@@ -234,3 +234,7 @@ $RECYCLE.BIN/
 *.lnk
 
 # End of https://www.toptal.com/developers/gitignore/api/windows,linux,macos,visualstudiocode,python
+
+# openpibo — 시험용 임시 홈 (test/test_board.py)
+.tmp-test/
+.tmp/
