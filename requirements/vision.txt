@@ -1,0 +1,38 @@
+# 비전 / 음성 모델 런타임.
+#
+#   pip install -r requirements/vision.txt
+#
+# 지우기 전에 requirements/README.md 의 "왜 이 패키지가 여기 있나" 를 읽을 것.
+
+-r base.txt
+
+# cv2. opencv-python 을 같이 깔지 말 것 — 같은 네임스페이스다.
+opencv-contrib-python>=4.11
+
+# 얼굴 인식(구분)의 핵심. 68점 랜드마크 + 128차원 임베딩.
+# facedb 가 여기 물려 있어 빼면 등록된 얼굴이 전부 무효가 된다.
+dlib>=19.24
+
+# 손/얼굴 랜드마크. 자체 C++ 런타임이라 TF/torch 를 안 끌고 온다.
+mediapipe>=0.10
+
+# TTS(speech, mtts)
+onnxruntime>=1.20
+
+# 얼굴 스위트 3종 (face-detection / age-gender / emotion)
+openvino>=2024.5
+
+# TeachableMachine. movenet 이 빠져도 이건 남는다.
+tflite-runtime>=2.14
+
+# QR / 바코드
+pyzbar>=0.1.9
+
+# YOLO 래퍼. torch 400MB 를 끌고 온다 — RAM 1위다.
+# 로드맵 7단계에서 전처리/후처리를 직접 구현해 걷어낸다. 지금 빼면 YOLO 가 안 돈다.
+ultralytics>=8.3
+
+# vision_classify 의 CustomClassifier / TeachableMachine.
+# 디스크 1위(1.1G)지만 상시 import 가 아니라 RAM 영향은 거의 없다.
+# 로드맵 5단계에서 OpenVINO 백본으로 갈아타며 빠진다.
+tensorflow>=2.15,<2.16

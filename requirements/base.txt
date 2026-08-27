@@ -1,0 +1,12 @@
+# 순수 파이썬 / 어디서나 설치된다. PC 에서 openpibo 를 import 하는 최소선.
+#
+#   pip install -r requirements/base.txt
+
+numpy>=1.26,<2            # cv2, mediapipe, tflite 가 아직 numpy 1.x 전제
+pillow>=10.0              # PIL — oled/pibo_graphics 의 그리기 전부
+requests>=2.28            # collect, speech, device(HTTP 프록시)
+beautifulsoup4>=4.12      # collect — 위키/날씨/뉴스 파싱
+soundfile>=0.12           # speech — TTS 결과 wav 쓰기
+
+# 파이썬 3.11 부터 tomllib 이 표준이다. 그 아래에서만 필요.
+tomli>=2.0; python_version < "3.11"

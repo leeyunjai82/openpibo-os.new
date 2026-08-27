@@ -1,0 +1,23 @@
+# 라즈베리파이 하드웨어. **PC 에서는 대부분 설치되지 않는다.**
+#
+#   pip install -r requirements/device.txt
+
+-r base.txt
+
+# 카메라
+picamera2>=0.3.21
+
+# GPIO / LED
+# 주의: rpi-lgpio 를 같이 깔지 말 것. 같은 RPi.GPIO 모듈을 제공한다.
+RPi.GPIO>=0.7.1
+rpi-ws281x>=5.0.0         # 파이브레인 WS2812 (device.DeviceByPiBrain)
+
+# 시리얼 — 파이보 MCU(/dev/ttyS0), USB 가젯(/dev/ttyGS0), usb_uart
+pyserial>=3.5
+
+# 디스플레이 (SPI)
+# board / busio / digitalio 최상위 모듈을 주는 것이 Adafruit-Blinka 다.
+Adafruit-Blinka>=8.56
+adafruit-circuitpython-ssd1306>=2.12    # 파이보 128x64 흑백  — oled.Oled
+adafruit-circuitpython-rgb-display>=3.13 # 파이브레인 ILI9341 — oled.OledByPiBrain
+                                         # + 보존용 ST7735    — oled.Oled7735

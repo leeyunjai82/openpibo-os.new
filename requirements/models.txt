@@ -1,0 +1,11 @@
+# 모델 데이터 패키지. 코드가 아니라 가중치와 폰트가 들어 있다.
+#
+# openpibo_models        KDL.ttf, NS_CJK_R.otf, pibo_graphics.png, 대화 데이터
+# openpibo_face_models   OpenVINO 얼굴 3종 (detection / age-gender / emotion)
+# openpibo_detect_models YOLO, movenet, mediapipe task 파일
+# openpibo_dlib_models   shape_predictor_68, face_recognition_resnet
+
+openpibo_models>=0.4.9
+openpibo_face_models>=0.4.3
+openpibo_detect_models>=0.4.4
+openpibo_dlib_models>=0.4.2

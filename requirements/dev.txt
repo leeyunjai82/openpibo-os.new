@@ -1,0 +1,8 @@
+# 개발 머신 전부. 기기용 + 빌드/문서 도구.
+#
+#   pip install -r requirements/dev.txt
+
+-r base.txt
+-r server.txt
+-r build.txt
+-r docs.txt

@@ -1,0 +1,8 @@
+# 없어도 나머지는 다 동작한다. 있으면 기능이 늘어난다.
+#
+#   pip install -r requirements/optional.txt
+
+# speech.SpeechOnDevice 의 STT. 함수 안에서 import 하므로,
+# 안 깔려 있으면 그 메소드를 부를 때만 실패한다.
+# 현재 기기 freeze 에 없다 — 즉 지금 STT 는 동작하지 않는다.
+faster-whisper>=1.0

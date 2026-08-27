@@ -1,3 +1,13 @@
+# 파이보 기기의 `pip freeze` 원본. **설치용이 아니라 참고용이다.**
+#
+# 이 파일은 손대지 말 것. 마지막으로 동작이 확인된 기기의 상태 그대로다.
+# 새 명세(requirements/*.txt)와 어긋나는지 볼 때 기준으로 쓴다.
+#
+#   bash requirements/check.sh
+#
+# 300줄 넘는데 실제 코드가 import 하는 것은 40개 남짓이다.
+# 여기 있다는 이유로 어떤 패키지를 "필요한 것"으로 읽지 말 것.
+
 absl-py==2.1.0
 Adafruit-Blinka==8.56.0
 adafruit-circuitpython-busdevice==5.2.11
@@ -55,7 +65,6 @@ docutils==0.21.2
 editdistance==0.8.1
 email_validator==2.2.0
 eng-to-ipa==0.0.2
-epitran @ file:///home/pi/openpibo-os.pibrain/openpibo/modules/speech/epitran-1.25.1-py2.py3-none-any.whl#sha256=e04bfd0bebe9ebfbe32950abcd990454aa603e07de0eda060304ff0c1696727e
 etils==1.11.0
 fastapi==0.115.4
 fastapi-cli==0.0.5
@@ -91,7 +100,6 @@ gruut-lang-fr==2.0.2
 gruut_lang_de==2.0.1
 gruut_lang_en==2.0.1
 gruut_lang_es==2.0.1
-gyp==0.1
 h11==0.14.0
 h5py==3.12.1
 httpcore==1.0.6
@@ -165,7 +173,6 @@ openpibo-detect-models==0.4.4
 openpibo-dlib-models==0.4.2
 openpibo-face-models==0.4.3
 openpibo-models==0.4.9
-openpibo-python @ file:///home/pi/openpibo-os.pibo/dist/openpibo_python-0.9.3.1-py3-none-any.whl#sha256=ff3b3d7ddb65f6cb1b4fd073097e2054d38f05e7d28f1af2d8d523c6ddabb1a3
 openvino==2024.5.0
 openvino-dev==2024.5.0
 openvino-telemetry==2024.5.0

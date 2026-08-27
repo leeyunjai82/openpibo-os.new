@@ -1,0 +1,9 @@
+# 기기에 들어가는 전부.
+#
+#   pip install -r requirements/device-all.txt
+
+-r base.txt
+-r device.txt
+-r vision.txt
+-r server.txt
+-r models.txt

@@ -1,0 +1,8 @@
+# Sphinx 문서 빌드. **기기에 넣지 않는다.**
+#
+#   pip install -r requirements/docs.txt && make -C docs html
+
+sphinx>=8.0
+myst-parser>=4.0
+sphinx-rtd-theme>=3.0
+sphinx-copybutton>=0.5.2

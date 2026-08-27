@@ -183,6 +183,28 @@ def load(name=None):
 BOARD = load()
 
 
+def __getattr__(name):
+  """
+  Adafruit Blinka 도 ``board`` 라는 **최상위** 모듈을 쓴다 (``board.D8`` 같은 핀 상수).
+
+  ``openpibo/__init__.py`` 가 패키지 경로를 ``sys.path`` 에 append 하기 때문에,
+  cwd 가 openpibo 폴더인 채로 파이썬을 띄우면 ``import board`` 가 Blinka 대신
+  이 파일을 집을 수 있다. 그러면 oled.py 가 ``board.D8`` 에서 죽는데,
+  기본 AttributeError 만 봐서는 원인을 알 수 없다.
+
+  핀 이름처럼 생긴 속성을 찾으면 무슨 일이 났는지 말해 준다.
+  """
+
+  if len(name) > 1 and name[0] in 'DAG' and name[1:].isdigit():
+    raise AttributeError(
+      f"'board.{name}' 은 Adafruit Blinka 의 핀 상수입니다. 그런데 지금 import 된 "
+      f"'board' 는 openpibo/board.py(보드 프로파일) 입니다.\n"
+      f"openpibo 폴더 안에서 파이썬을 띄우면 이런 일이 납니다. "
+      f"다른 폴더에서 실행하거나 `from openpibo import board` 로 명시하세요."
+    )
+  raise AttributeError(f"module 'openpibo.board' has no attribute '{name}'")
+
+
 if __name__ == "__main__":
   import sys
 

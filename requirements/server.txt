@@ -1,0 +1,10 @@
+# 허브 / IDE / tools / classifier 웹 서버.
+#
+#   pip install -r requirements/server.txt
+
+fastapi>=0.115
+uvicorn>=0.32
+fastapi-socketio>=0.0.10   # ide, tools 의 socket.io
+jinja2>=3.1                # Jinja2Templates — index.html, landing.html
+python-multipart>=0.0.20   # UploadFile — /upload. 없으면 업로드가 500 이다
+aiofiles>=23.2             # StaticFiles / FileResponse 비동기 읽기
