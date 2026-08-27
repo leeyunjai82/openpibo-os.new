@@ -28,9 +28,14 @@ Class:
 import board
 import busio
 import digitalio
-import adafruit_ssd1306 as ssd1306
-import adafruit_rgb_display.ili9341 as ili9341
-import adafruit_rgb_display.st7735 as st7735
+import adafruit_ssd1306 as ssd1306           # 파이보 (Oled)
+import adafruit_rgb_display.ili9341 as ili9341  # 파이브레인 (OledByPiBrain)
+
+# st7735 은 최상위에서 import 하지 않는다.
+# Oled7735 은 어느 보드에서도 쓰지 않는 보존용 클래스인데, 여기서 import 하면
+# 이 드라이버가 없는 이미지에서 `import openpibo.oled` 자체가 실패한다.
+# 그러면 부팅 화면도 IDE 도 전부 못 뜬다. 실제로 파이브레인 레포는 이 import 를
+# 지워 놓고 돌고 있었다. 쓸 때만 불러온다 (Oled7735.__init__).
 
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 import os
@@ -300,6 +305,9 @@ Functions:
     cs_pin = digitalio.DigitalInOut(board.D8)    # any pin!
     cs_pin.switch_to_output(value=0)
     dc_pin = digitalio.DigitalInOut(board.D23)    # any pin!
+
+    # 보존용 클래스라 여기서 불러온다. 위 import 절의 주석 참고.
+    import adafruit_rgb_display.st7735 as st7735
 
     spi = busio.SPI(11,10,9)
     # 미검증: bl=cs_pin (백라이트를 CS 에 물림), w/h 128x64, rst=None.
