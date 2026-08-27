@@ -99,5 +99,42 @@ check('어느 보드에서도 안 보이는 블록 없음', orphan.length === 0,
 check('requires 키가 Blockly 로 새어 나가지 않음',
       !hasRequiresKey(buildToolbox('pibo')) && !hasRequiresKey(buildToolbox('pibrain')));
 
+// Blockly 의 동적 카테고리는 contents 가 [] 이고 실행 중에 채워진다.
+// "비었으니 지운다"에 같이 쓸려 나가면 두 보드 다 변수·함수 서랍이 사라진다.
+// 눈으로는 "원래 없었나?" 싶어 놓치기 쉬운 종류라 시험으로 못박는다.
+for (const board of ['pibo', 'pibrain']) {
+  check(`${board}: 변수 카테고리 살아 있음`, collect(buildToolbox(board)).cats.has('variables'));
+  check(`${board}: 함수 카테고리 살아 있음`, collect(buildToolbox(board)).cats.has('functions'));
+}
+
+// 걸러진 툴박스가 원본 두 레포와 **블록 단위로** 같은지.
+// 통합하면서 한쪽에만 있던 블록을 흘리지 않았는지 보는 것이 이 시험의 요점이다.
+const UPSTREAM = {
+  pibo:    '/home/user/themakerrobot/openpibo-os.pibo/ide/static',
+  pibrain: '/home/user/themakerrobot/openpibo-os.pibrain/ide/static',
+};
+for (const [board, dir] of Object.entries(UPSTREAM)) {
+  if (!fs.existsSync(path.join(dir, 'customblock_toolbox.js'))) {
+    console.log(`  건너뜀  ${board} 원본 대조 — ${dir} 가 없습니다`);
+    continue;
+  }
+  const sandbox = {
+    console,
+    window: { __BOARD__: null },
+    translations: new Proxy({}, { get: (_, k) => ({ ko: String(k), en: String(k) }) }),
+    color_type: new Proxy({}, { get: () => '#000000' }),
+  };
+  sandbox.window.console = console;
+  vm.createContext(sandbox);
+  vm.runInContext(fs.readFileSync(path.join(dir, 'customblock_toolbox.js'), 'utf8'),
+                  sandbox, { filename: `${board}/customblock_toolbox.js` });
+  const up = collect(vm.runInContext('toolbox_dict', sandbox).ko);
+  const ours = collect(buildToolbox(board));
+  const lost = [...up.types].filter((t) => !ours.types.has(t));
+  const extra = [...ours.types].filter((t) => !up.types.has(t));
+  check(`${board}: 원본 툴박스에 있던 블록을 안 잃음`, lost.length === 0, lost.join(', '));
+  check(`${board}: 원본에 없던 블록이 안 생김`, extra.length === 0, extra.join(', '));
+}
+
 console.log(failed === 0 ? '\n전부 통과' : `\n${failed}개 실패`);
 process.exit(failed === 0 ? 0 : 1);

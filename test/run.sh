@@ -26,6 +26,7 @@ run "보드별 tools 앱 선택" $PY test/test_tools_launch.py
 
 if command -v node >/dev/null 2>&1; then
   run "블록 툴박스 보드 필터" node test/js/board_filter.test.js
+  run "블록·생성기·번역 맞물림" node test/js/blocks_messages.test.js
   run "프록시 base 경로"      node test/js/proxy_base.test.js
 else
   echo

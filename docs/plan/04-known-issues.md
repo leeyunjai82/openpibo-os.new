@@ -12,7 +12,49 @@
 
 ---
 
-## 높음 — **7건 전부 [고침]**
+## 높음 — **10건 전부 [고침]**
+
+### 0-2. `en.js` — `SPEECH_GTTS` 가 통째로 빠짐  `[고침]`
+
+`ko.js` 에는 있고 `en.js` 에는 없다. `customblock.js` 의 `speech_gtts` 블록은
+`%{BKY_SPEECH_GTTS}` 를 참조한다. `setLanguage()` 가 `en.js` 를 나중에 얹어도
+`Blockly.Msg` 에 이미 들어간 한글 값이 남아 있어서, 영어로 바꿔도 그 블록만
+한글이 섞여 나온다.
+
+    영어 모드: "korean ? 를 Select folder ? . mp3 에 저장하기"
+
+파이브레인 레포의 `en.js` 에는 두 줄이 다 있다. 그쪽 것을 가져왔다.
+
+### 0-3. `en.js` — `SPEECH_OSTT` 가 인자 3개짜리 블록에 `%4`  `[고침]`
+
+    speech_ostt args0 : field_image, input_dummy, input_value  → 3개
+    ko.js             : "%1 %2 %3 초 동안 ..."                  → 3개  ok
+    en.js (파이보)    : "%1 %2 %3 Record for %4 seconds ..."    → 4개  ✗
+
+Blockly 는 블록을 **만들 때** 메시지를 끼운다. 영어 모드에서 이 블록을 만들면
+그 자리에서 던진다 — 브라우저에서 재현했다.
+
+    Block "speech_ostt": Message index %4 out of range.
+
+영어로 바꾼 채 음성 서랍을 열거나, 그 블록이 든 저장 파일을 열면 걸린다.
+파이브레인 레포는 `"%1 %2 Record for %3 seconds ..."` 로 고쳐져 있었다. 그쪽 것을 가져왔다.
+
+### 0-4. `board_filter.js` — 빈 카테고리 정리가 변수·함수 서랍을 지움  `[고침]`
+
+**이건 통합하면서 내가 새로 만든 것이다.** 걸러져서 비게 된 카테고리를 지우는
+규칙이었는데, Blockly 의 동적 카테고리가 정확히 그 모양이다.
+
+```js
+{ "kind": "category", "name": "변수", "contents": [], "custom": "VARIABLE" }
+```
+
+`contents` 가 비어 있고 Blockly 가 실행 중에 채운다. 그래서 **두 보드 다**
+변수·함수 서랍이 통째로 사라졌다. 원본과 카테고리 수를 대조해 보고서야 나왔다
+(파이보 18 → 16, 파이브레인 17 → 15). 눈으로는 "원래 없었나?" 싶어 놓치기 쉽다.
+
+"원래부터 비어 있던 것"과 "걸러져서 비게 된 것"을 가른다 — 필터 **전** `contents` 가
+비어 있지 않았을 때만 지운다.
+
 
 ### 0. `socket.io.min.js` — `navigator.userAgent` 가 통째로 `userAgentData` 로 치환돼 있음  `[고침]`
 

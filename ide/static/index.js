@@ -637,7 +637,7 @@ const setLanguage = (langCode) => {
     if (translations[key]?.[langCode]) el.textContent = translations[key][langCode];
   });
 
-  const ver = '240110v11';
+  const ver = '260828v1';   // en.js 의 SPEECH_GTTS/SPEECH_OSTT 를 고쳤다. 안 올리면 옛 파일이 그대로 쓰인다
   ['ko', 'en'].forEach(l => {
     const s = document.querySelector(`script[src*="../static/${l}.js?ver=${ver}"]`);
     if (s) s.remove();

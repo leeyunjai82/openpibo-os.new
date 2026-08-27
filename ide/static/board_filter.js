@@ -50,8 +50,15 @@ function filterToolbox(node) {
     out[key] = filterToolbox(node[key]);
   }
 
-  // 안에 있는 블록이 전부 걸러진 카테고리는 빈 채로 남기지 않는다.
-  if (out.kind === 'category' && Array.isArray(out.contents) && out.contents.length === 0) {
+  // 안에 있는 블록이 **걸러져서** 비게 된 카테고리는 빈 채로 남기지 않는다.
+  //
+  // 원래부터 비어 있던 것은 건드리지 않는다. Blockly 의 동적 카테고리
+  // (변수 "custom": "VARIABLE", 함수 "PROCEDURE")가 정확히 그렇다 —
+  // contents 가 [] 이고 Blockly 가 실행 중에 채운다. 이걸 같이 지우면
+  // 두 보드 다 변수·함수 서랍이 통째로 없어진다.
+  if (out.kind === 'category' &&
+      Array.isArray(out.contents) && out.contents.length === 0 &&
+      Array.isArray(node.contents) && node.contents.length > 0) {
     return null;
   }
   return out;
