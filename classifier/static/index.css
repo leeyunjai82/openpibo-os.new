@@ -732,6 +732,5 @@ button.btn-disabled {
 
 /* ── 셸(iframe) 안에서 ────────────────────────────────────────
    셸의 "학습" 탭이 이미 어느 화면인지 알려 준다. 제목과 로고를 감춘다. */
-html.embedded { --header-h: 2.6rem; }
-html.embedded header.title > div[style*="float:left"],
-html.embedded #logo_bt { display: none; }
+html.embedded { --header-h: 0px; }
+html.embedded header.title { display: none; }

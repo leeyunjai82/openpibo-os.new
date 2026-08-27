@@ -94,6 +94,28 @@ html, body {
 
 .topbar-right { display: flex; align-items: center; gap: 8px; margin-left: auto; }
 
+/* 지금 보고 있는 앱의 조작. embed.js 가 iframe 에서 올려 보낸다.
+   덕분에 앱 헤더를 통째로 감출 수 있어 바가 한 줄로 끝난다. */
+.app-actions {
+  display: flex; align-items: center; gap: 6px; margin-left: 8px;
+  /* 좁은 화면에서 상단바가 밀려 나가지 않게 줄어들 수 있어야 한다.
+     min-width:0 이 없으면 flex 항목이 내용 크기 밑으로 안 줄어든다. */
+  min-width: 0; overflow-x: auto; scrollbar-width: none;
+}
+.app-actions::-webkit-scrollbar { display: none; }
+.app-actions > * { flex: 0 0 auto; }
+.app-actions:not(:empty) {
+  padding-left: 10px;
+  border-left: 1px solid rgba(0,0,0,.15);   /* 셸 것과 앱 것을 눈으로 가른다 */
+}
+.icon-btn-text { width: auto; padding: 0 11px; font-size: 12px; font-weight: 800; }
+.bar-select {
+  border: 0; background: rgba(0,0,0,.1); color: #333;
+  height: 34px; border-radius: 20px; padding: 0 10px;
+  font-family: inherit; font-size: 12px; font-weight: 700; cursor: pointer;
+}
+.bar-select:hover { background: rgba(0,0,0,.18); }
+
 /* ── 상태 배지 (landing 의 hdr-btn 모양) ────────────────── */
 .badges { display: flex; gap: 6px; }
 .badge {
@@ -119,7 +141,9 @@ html, body {
 
 /* ── 본문 ───────────────────────────────────────────────── */
 .stage { position: absolute; inset: calc(var(--bar) + var(--safe-t)) 0 0 0; }
-.stage.with-bottom-tabs { bottom: calc(var(--bar) + var(--safe-b)); }
+/* 하단 탭바 자리는 **탭바가 실제로 보일 때만** 비운다.
+   넓은 화면에서는 탭바가 display:none 인데도 52px 를 비워 두고 있었다 —
+   아래에 흰 띠가 남았다. */
 
 .frame {
   position: absolute; inset: 0;
@@ -330,10 +354,27 @@ html, body {
 @media (max-width: 720px) {
   .topbar .tabs { display: none; }
   .bottom-tabs { display: flex; }
+  .stage.with-bottom-tabs { bottom: calc(var(--bar) + var(--safe-b)); }
   .brand span.brand-name { display: none; }
   /* 글자를 아이콘으로. 점만 남기면 무슨 뜻인지 알 수 없다. */
   .badge span { display: none; }
   .badge { padding: 5px 9px; font-size: 13px; }
+  /* 좁으면 앱 조작이 탭·배지와 자리를 다툰다. 조작을 먼저 살린다 —
+     탭은 하단 탭바에 있고 배지는 아이콘으로 줄었다. */
+  /* 좁으면 앱 조작이 탭·배지와 자리를 다툰다. 조작을 먼저 살린다 —
+     탭은 하단 탭바에 있고 배지는 아이콘으로 줄었다. */
+  .app-actions { margin-left: auto; }
+  .app-actions:not(:empty) { border-left: 0; padding-left: 0; }
+  /* 390px 에서 브랜드+조작+배지+설정이 11px 넘쳤다. 여백을 줄인다. */
+  .topbar {
+    gap: 4px;
+    padding-left: calc(10px + var(--safe-l));
+    padding-right: calc(8px + var(--safe-r));
+  }
+  .brand { margin-right: 0; padding: 4px; }
+  .topbar-right { gap: 6px; }
+  .icon-btn { width: 32px; height: 32px; }
+  .bar-select { height: 32px; padding: 0 8px; }
   .badge::after { content: attr(data-icon); line-height: 1; }
   .home { padding: 20px 14px 26px; }
   .cards { grid-template-columns: 1fr; gap: 12px; }

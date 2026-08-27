@@ -986,6 +986,5 @@ tbody { background: var(--light-yellow); }
 /* ── 셸(iframe) 안에서 ────────────────────────────────────────
    중복 브랜딩만 감춘다. 연결 상태(#onoff_val, #onoff_count)는 기능이라 남긴다 —
    "Tools" 글자가 그 아이콘 안에 들어 있어서 아이콘째 감춘다. */
-html.embedded { --header-h: 2.6rem; }
-html.embedded header.title h2 > i.fa-microchip,
-html.embedded #logo_bt { display: none; }
+html.embedded { --header-h: 0px; }
+html.embedded header.title { display: none; }

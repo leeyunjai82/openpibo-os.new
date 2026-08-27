@@ -85,30 +85,51 @@ with sync_playwright() as pw:
         '#frame_code', 'f=>f.contentDocument.documentElement.classList.contains("embedded")')
     check('셸 안: 앱이 embedded 를 인식', embedded)
     fr = pg.frame_locator('#frame_code')
-    check('셸 안: 앱 제목이 감춰짐', not fr.locator('.header-logo').is_visible())
-    check('셸 안: THE MAKER 로고가 감춰짐', not fr.locator('#logo_bt').is_visible())
-    check('셸 안: 기능 버튼은 남음 (메뉴)', fr.locator('#sidebar_toggle_btn').is_visible())
-    check('셸 안: 기능 버튼은 남음 (언어)', fr.locator('#lang-toggle').is_visible())
-
-    # 감춘 것에 기능이 붙어 있지 않은지, 남긴 것이 실제로 동작하는지.
-    # #logo_bt 는 '홈으로'였다 — 셸의 브랜드 버튼과 홈 탭이 같은 일을 하므로
-    # 감춰도 잃는 기능이 없다. 대신 iframe 안에서 '/' 로 가면 셸 안에 셸이
-    # 겹쳐 뜨므로, 핸들러가 맨 바깥 창을 옮기게 고쳤다.
-    home_src = pg.eval_on_selector(
+    # 바가 한 줄이어야 한다: 앱 헤더는 통째로 감추고, 그 안의 조작만
+    # 셸 상단바로 올라온다 (embed.js -> shell.js).
+    hdr = pg.eval_on_selector(
         '#frame_code',
-        'f=>{const s=[...f.contentDocument.scripts].map(x=>x.src).find(x=>x.includes("index.js"));'
-        ' return s||"";}')
-    check('앱 index.js 가 로드됨', bool(home_src), home_src)
+        'f=>{const h=f.contentDocument.querySelector("header.title");'
+        ' return h ? getComputedStyle(h).display : "없음";}')
+    check('셸 안: 앱 헤더가 통째로 감춰짐 (바 한 줄)', hdr == 'none', hdr)
 
-    # 전체화면 버튼: 실제로 눌러서 들어가는지 본다.
-    # 눌러도 아무 일이 없으면 헤더가 남아 있어도 쓸모가 없다.
-    fr.locator('#fullscreen_bt').click()
+    pg.wait_for_selector('#app_actions > *', timeout=10000)
+    titles = pg.eval_on_selector_all('#app_actions > *', 'els=>els.map(e=>e.title)')
+    check('IDE 조작이 상단바로 올라옴',
+          titles == ['파일 목록', '초기화', '언어', '전체화면'], str(titles))
+
+    # 올라온 버튼이 **실제로 앱을 조작해야** 의미가 있다. 눌러서 확인한다.
+    lang = lambda: pg.eval_on_selector(
+        '#frame_code', 'f=>f.contentDocument.getElementById("language").value')
+    was = lang()
+    pg.locator('#app_actions button[title="언어"]').click()
+    pg.wait_for_timeout(500)
+    check('상단바 EN 이 앱 언어를 바꿈', lang() != was, f'{was} -> {lang()}')
+
+    collapsed = lambda: pg.eval_on_selector(
+        '#frame_code',
+        'f=>f.contentDocument.getElementById("browser_en")'
+        '   .classList.contains("collapsed")')
+    was_c = collapsed()
+    pg.locator('#app_actions button[title="파일 목록"]').click()
+    pg.wait_for_timeout(500)
+    check('상단바 메뉴가 앱 파일패널을 접음', collapsed() != was_c,
+          f'{was_c} -> {collapsed()}')
+    pg.locator('#app_actions button[title="파일 목록"]').click()
+    pg.wait_for_timeout(400)
+
+    # 전체화면도 상단바에서 눌러 확인
+    pg.locator('#app_actions button[title="전체화면"]').click()
     pg.wait_for_timeout(700)
-    entered = pg.eval_on_selector('#frame_code',
-                                  'f=>!!f.contentDocument.fullscreenElement')
-    check('셸 안: 앱 전체화면 버튼이 실제로 동작', entered)
+    check('상단바 전체화면이 실제로 동작',
+          pg.eval_on_selector('#frame_code', 'f=>!!f.contentDocument.fullscreenElement'))
     pg.evaluate('()=>{ if (document.fullscreenElement) document.exitFullscreen(); }')
     pg.wait_for_timeout(400)
+
+    # 넓은 화면에서 하단 탭바 자리를 비워 두면 안 된다 (흰 띠가 남았었다)
+    check('넓은 화면: 아래 빈 띠 없음',
+          pg.eval_on_selector('#stage', 'e=>getComputedStyle(e).bottom') == '0px',
+          pg.eval_on_selector('#stage', 'e=>getComputedStyle(e).bottom'))
 
     # 포트로 직접 열면 예전 그대로여야 한다
     pg_d = b.new_page(viewport={'width': 1280, 'height': 800})

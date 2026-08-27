@@ -135,6 +135,9 @@ async function show(id) {
   current = id;
   markTabs(id);
   hideAllPanes();
+  // 이전 화면의 조작을 상단바에서 치운다.
+  // 남겨 두면 다른 화면의 버튼을 누르게 된다.
+  clearActions();
 
   if (tab.kind === 'home') {
     byId('home_pane').style.display = '';
@@ -153,6 +156,14 @@ async function show(id) {
 
 function mountFrame(tab) {
   let f = byId('frame_' + tab.id);
+  // 살려 둔 iframe(코딩 탭)으로 돌아온 경우 — 조작을 다시 올린다.
+  // embed.js 는 이미 들어가 있으므로 다시 알려 달라고만 한다.
+  if (f && f.contentWindow) {
+    injectEmbed(f);
+    try {
+      f.contentWindow.postMessage({ type: 'pibo:rescan' }, window.location.origin);
+    } catch (_) { /* 아직 안 떴으면 load 때 주입된다 */ }
+  }
   if (!f) {
     f = document.createElement('iframe');
     f.id = 'frame_' + tab.id;
@@ -168,11 +179,97 @@ function mountFrame(tab) {
     f.allowFullscreen = true;
     // 같은 origin 이라 sandbox 를 걸면 오히려 앱이 망가진다.
     // 1단계에서 origin 을 합쳤기 때문에 그냥 붙여도 된다.
+
+    // 앱 헤더의 조작을 셸 상단바로 올린다.
+    // 같은 origin 이라 iframe 안에 스크립트를 넣을 수 있다 —
+    // 덕분에 앱 세 개를 각각 고칠 필요가 없다.
+    f.addEventListener('load', () => injectEmbed(f));
+
     f.src = tab.src;
     byId('stage').appendChild(f);
   }
   f.classList.add('active');
 }
+
+/* ── 앱 조작을 상단바로 올리기 ─────────────────────────── */
+
+/*
+ * 셸 바 + 앱 헤더로 바가 두 겹이던 것을 하나로 만든다.
+ * 앱 헤더는 CSS 로 감추고(html.embedded), 그 안의 조작만 여기로 올린다.
+ */
+
+let actionOwner = null;      // 지금 상단바에 올라와 있는 조작의 주인 탭
+
+function injectEmbed(frame) {
+  try {
+    const d = frame.contentDocument;
+    if (!d || d.getElementById('pibo_embed')) return;
+    const s = d.createElement('script');
+    s.id = 'pibo_embed';
+    s.src = '/static/embed.js?ver=260827v1';
+    d.head.appendChild(s);
+  } catch (_) {
+    // 접근이 막히면 앱이 자기 헤더를 그대로 쓴다. 기능은 잃지 않는다.
+  }
+}
+
+function clearActions() {
+  byId('app_actions').innerHTML = '';
+  actionOwner = null;
+}
+
+function renderActions(actions, tabId) {
+  const wrap = byId('app_actions');
+  wrap.innerHTML = '';
+  actionOwner = tabId;
+
+  actions.forEach((a) => {
+    let el;
+    if (a.kind === 'select') {
+      el = document.createElement('select');
+      el.className = 'bar-select';
+      (a.options || []).forEach((o) => {
+        const opt = document.createElement('option');
+        opt.value = o.value; opt.textContent = o.label;
+        el.appendChild(opt);
+      });
+      if (a.value != null) el.value = a.value;
+      el.onchange = () => sendAction(a.id, el.value);
+    } else {
+      el = document.createElement('button');
+      el.type = 'button';
+      el.className = 'icon-btn';
+      if (a.icon) {
+        el.innerHTML = `<i class="fa-solid ${a.icon}"></i>`;
+      } else {
+        el.textContent = a.text || '?';
+        el.classList.add('icon-btn-text');
+      }
+      el.onclick = () => sendAction(a.id);
+    }
+    el.title = a.title || '';
+    if (a.title) el.setAttribute('aria-label', a.title);
+    wrap.appendChild(el);
+  });
+}
+
+function sendAction(id, value) {
+  const f = actionOwner && byId('frame_' + actionOwner);
+  if (!f || !f.contentWindow) return;
+  f.contentWindow.postMessage(
+    { type: 'pibo:action', id, value }, window.location.origin);
+}
+
+window.addEventListener('message', (ev) => {
+  if (ev.origin !== window.location.origin) return;
+  if (!ev.data || ev.data.type !== 'pibo:actions') return;
+  // 보낸 쪽이 지금 보고 있는 탭인지 확인한다.
+  // 살려 둔 숨은 iframe(코딩 탭)이 상단바를 가로채면 안 된다.
+  const cur = TAB[current];
+  const f = cur && byId('frame_' + cur.id);
+  if (!f || f.contentWindow !== ev.source) return;
+  renderActions(ev.data.actions || [], cur.id);
+});
 
 /* ── 서비스 전환 ───────────────────────────────────────── */
 

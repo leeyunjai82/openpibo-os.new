@@ -578,6 +578,8 @@ button.disabled { opacity: 0.45; filter: grayscale(0.5); pointer-events: none; }
    여기서 THE MAKER 로고와 "IDE" 제목을 또 보여주면 로고가 두 개, 바가 두 겹이 된다.
    **기능 버튼(메뉴, 전체화면, 초기화, 언어)은 건드리지 않는다.**
    포트로 직접 열면 이 규칙이 안 걸려 예전 그대로다. */
-html.embedded { --header-h: 2.6rem; }
-html.embedded .header-logo,
-html.embedded #logo_bt { display: none; }
+/* 헤더를 통째로 감춘다. 안의 조작(메뉴/초기화/언어/전체화면)은
+   embed.js 가 셸 상단바로 올린다. 요소는 남아 있으므로 셸이 대신 눌러 준다.
+   --header-h: 0 으로 두면 본문이 그 자리를 차지한다. */
+html.embedded { --header-h: 0px; }
+html.embedded header.title { display: none; }
