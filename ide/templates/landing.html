@@ -324,7 +324,9 @@
         <div class="card tools" id="card_tools">
           <div class="card-icon"><i class="fa-solid fa-screwdriver-wrench"></i></div>
           <h3>Tools</h3>
-          <p>모션, 비전, 음성<br>센서 제어</p>
+          <!-- 체험 화면은 보드마다 다른 앱이다 (tools/launch.py 가 고른다).
+               파이보는 다리·MCU, 파이브레인은 버튼·LCD 다. -->
+          <p id="card_tools_desc">모션, 비전, 음성<br>센서 제어</p>
           <button class="card-btn">열기 →</button>
         </div>
         <div class="card cls" id="card_cls">
@@ -528,6 +530,15 @@
         var el = document.getElementById(id);
         if (el) el.style.display = 'none';
       });
+    })();
+
+    // 체험(Tools) 화면은 보드마다 다른 앱이다 — 설명도 보드 것으로 바꾼다.
+    // (셸의 같은 카드는 shell.js 의 descOf() 가 맡는다)
+    (function toolsDescForBoard() {
+      var b = (window.__BOARD__ || {}).name;
+      var d = { pibrain: '버튼, LED, 카메라<br>음성, LCD' }[b];
+      var el = document.getElementById('card_tools_desc');
+      if (d && el) el.innerHTML = d;
     })();
 
     socket.on('update_battery', (data) => {

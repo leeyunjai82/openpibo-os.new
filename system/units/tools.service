@@ -1,5 +1,6 @@
 [Unit]
 Description=openpibo tools (port 50000)
+# launch.py 가 보드를 보고 tools/ (파이보) 또는 tools/pibrain/ 을 고른다.
 After=network.target
 Wants=network.target
 
@@ -12,7 +13,7 @@ Conflicts=classify.service llama-server.service
 Type=simple
 User=root
 WorkingDirectory=/home/pi/openpibo-os/tools
-ExecStart=/home/pi/.pyenv/bin/python3 /home/pi/openpibo-os/tools/run_tools.py --port 50000
+ExecStart=/home/pi/.pyenv/bin/python3 /home/pi/openpibo-os/tools/launch.py --port 50000
 Restart=no
 Environment=PYTHONUNBUFFERED=1
 

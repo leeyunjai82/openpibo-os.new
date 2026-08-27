@@ -12,7 +12,42 @@
 
 ---
 
-## 높음 — **5건 전부 [고침]**
+## 높음 — **7건 전부 [고침]**
+
+### 0. `socket.io.min.js` — `navigator.userAgent` 가 통째로 `userAgentData` 로 치환돼 있음  `[고침]`
+
+세 앱이 같은 번들을 쓰고(md5 동일), 그 안에 `navigator.userAgent` 가 **0 번**,
+`navigator.userAgentData` 가 **19 번** 나온다. 잘못된 일괄 치환의 흔적이다.
+`userAgentData` 는 문자열이 아니라 `NavigatorUAData` 객체라 `.toLowerCase()` 에서 던진다.
+
+```js
+"undefined"!=typeof navigator && navigator.userAgentData && navigator.userAgentData.toLowerCase()...
+//                               ^^^ 객체라 truthy            ^^^ 여기서 TypeError
+```
+
+번들 평가 중에 던지므로 `io` 가 아예 정의되지 않는다. **socket.io 가 통째로 안 뜬다.**
+IDE 는 `socket.on('init')` 로 블록/파이썬 중 하나를 감추는데 그게 안 와서
+두 편집기가 위아래로 겹쳐 보이고, tools 는 `handleMenu("device")` 까지 못 가서
+탭 5 개가 한꺼번에 펼쳐진다. "CSS 가 깨진" 것처럼 보이지만 CSS 문제가 아니다.
+
+**왜 여태 안 걸렸나**: `navigator.userAgentData` 는 크로미움 계열의 **보안 컨텍스트**
+(https 또는 localhost)에서만 정의된다. 교실에서 쓰던 `http://192.168.x.x:50000` 은
+보안 컨텍스트가 아니라 `undefined` → 앞의 `&&` 에서 끊겨 조용히 넘어갔다.
+파이어폭스/사파리에는 이 속성 자체가 없다. **https 를 켜거나 localhost 로 여는 순간
+전부 죽는다.** 셸을 붙이면서 localhost 로 열어 보다가 드러났다.
+
+세 벌 다 `navigator.userAgent` 로 되돌렸다. `test/test_tools_launch.py` 가 재발을 막는다.
+
+### 0-1. IDE — 편집기 초기 상태가 socket 응답에 매달려 있음  `[고침]`
+
+`blocklyDiv` 와 `codeDiv` 둘 다 아무 초기 상태 없이 그려지고, `codetype` 전환 버튼도
+`checked` 없이 시작한다. 어느 쪽을 감출지는 `socket.on('init')` 이 와야 정해진다.
+뒤쪽이 늦거나(0번처럼) 안 오면 **두 편집기가 겹쳐 보인다.**
+
+템플릿에서 블록을 기본으로 정했다 — `<button name="block" class="checked">` +
+`<div id="codeDiv" style="display:none">`. `init` 이 오면 지금까지처럼 덮어쓴다.
+파일을 안 열었을 때의 기본값도 블록이라(`index.js` 227~232) 뜻이 바뀌지 않는다.
+
 
 ### 1. `run_ide.py` — `raise JSONResponse` → TypeError  `[고침]`
 

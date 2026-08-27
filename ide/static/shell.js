@@ -30,7 +30,11 @@ const TABS = [
   { id: 'home',  name: '홈',    tab: '홈',   icon: 'fa-house', kind: 'home' },
   { id: 'play',  name: 'Tools', tab: '체험', icon: 'fa-screwdriver-wrench',
     kind: 'frame', src: '/tools/',    service: 'tools',
-    desc: '모션, 비전, 음성<br>센서 제어' },
+    // 체험 화면은 보드마다 **다른 앱**이다 (tools/launch.py 가 고른다).
+    // 파이보는 다리·MCU 가 있고 파이브레인은 버튼·LCD 가 있다.
+    // 설명이 다른 보드의 것이면 눌러 보기 전에 이미 틀린 말을 한 셈이다.
+    desc: { pibo:    '모션, 비전, 음성<br>센서 제어',
+            pibrain: '버튼, LED, 카메라<br>음성, LCD' } },
   { id: 'code',  name: 'IDE',   tab: '코딩', icon: 'fa-code',
     kind: 'frame', src: '/ide',       keep: true,
     desc: '코드 작성 및<br>실행 환경' },
@@ -543,6 +547,13 @@ function buildTabs() {
   });
 }
 
+/* desc 가 보드별로 갈린 탭이 있다 (체험). 문자열이면 그대로, 객체면 이 보드 것. */
+function descOf(t) {
+  if (!t.desc) return '';
+  if (typeof t.desc === 'string') return t.desc;
+  return t.desc[BOARD.name] || t.desc.pibo || '';
+}
+
 function buildHomeCards() {
   const wrap = byId('home_cards');
   TABS.filter((t) => t.id !== 'home').forEach((t) => {
@@ -556,7 +567,7 @@ function buildHomeCards() {
         // 이름은 탭과 같은 한글. 탭에 "학습", 카드에 "Classifier" 면 용어가 갈린다.
         // 영문 이름은 작은 보조 표기로 남긴다.
         `<span class="name">${esc(t.tab)} <small class="name-en">${esc(t.name)}</small></span>` +
-        `<span class="desc">${t.desc || ''}</span>` +
+        `<span class="desc">${descOf(t)}</span>` +
       `</span>` +
       `<span class="card-btn">열기 <i class="fa-solid fa-arrow-right"></i></span>`;
     b.onclick = () => go(t.id);

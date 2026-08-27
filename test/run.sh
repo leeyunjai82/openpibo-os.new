@@ -22,6 +22,7 @@ run() {
 }
 
 run "보드 프로파일" $PY test/test_board.py
+run "보드별 tools 앱 선택" $PY test/test_tools_launch.py
 
 if command -v node >/dev/null 2>&1; then
   run "블록 툴박스 보드 필터" node test/js/board_filter.test.js
@@ -39,9 +40,10 @@ run "파이썬 문법 (전체)" $PY -m compileall -q openpibo system ide classif
 echo
 echo "── theme.css 복사본 동일성 ──"
 # 원본은 ide/static/theme.css. 앱별 복사본이 어긋나면 심리스가 조용히 깨진다.
-if [ "$(md5sum ide/static/theme.css tools/static/theme.css classifier/static/theme.css \
+if [ "$(md5sum ide/static/theme.css tools/static/theme.css \
+        tools/pibrain/static/theme.css classifier/static/theme.css \
         | awk '{print $1}' | sort -u | wc -l)" = "1" ]; then
-  echo "  ok   3벌 동일"
+  echo "  ok   4벌 동일"
 else
   echo " FAIL  theme.css 복사본이 어긋났습니다. ide/static/theme.css 를 고치고 복사하세요."
   failed=$((failed+1))

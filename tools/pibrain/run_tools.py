@@ -1,5 +1,9 @@
 """
-run_tools.py — Pibo Brain Tools Server (포트: 50040)
+run_tools.py — 파이브레인 tools 서버 (포트: 50000)
+
+띄우는 것은 tools/launch.py 다. 보드가 pibrain 이면 이 앱을 고른다.
+원래 파이브레인에서는 50040 이었는데, 셸 프록시(/tools/) 뒤로 들어오면서
+파이보 것과 같은 50000 으로 맞췄다.
 """
 
 import asyncio
@@ -296,7 +300,7 @@ templates = Jinja2Templates(directory="templates")
 
 @app.get('/', response_class=HTMLResponse)
 async def index(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse(request, "index.html", {})
 
 @app.get('/health')
 async def health():
@@ -464,6 +468,6 @@ async def oled_reset():
 if __name__ == '__main__':
     import uvicorn
     parser = argparse.ArgumentParser()
-    parser.add_argument('--port', default=50040)
+    parser.add_argument('--port', default=50000)
     args = parser.parse_args()
     uvicorn.run('run_tools:app', host='0.0.0.0', port=int(args.port), access_log=False)

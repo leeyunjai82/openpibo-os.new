@@ -238,6 +238,31 @@ with sync_playwright() as pw:
     pg.wait_for_timeout(600)
     check('새로고침해도 코딩 탭', pg.is_visible('#frame_code'))
 
+    # 11b. IDE 는 블록/파이썬 중 **하나만** 보여야 한다.
+    # 처음 열었을 때 둘 다 보이면 CSS 가 깨진 것으로 읽힌다.
+    # (예전에는 socket 의 init 이 와야만 한쪽이 감춰졌다 —
+    #  뒤쪽이 늦거나 없으면 두 편집기가 위아래로 겹쳐 보였다.)
+    fr = None
+    for f in pg.frames:
+        if f != pg.main_frame and '/ide' in f.url:
+            fr = f
+    if fr is None:
+        check('IDE iframe 을 찾음', False)
+    else:
+        try:
+            fr.wait_for_function("() => document.readyState === 'complete'", timeout=8000)
+        except Exception:
+            pass
+        shown = fr.evaluate(
+            "() => ['blocklyDiv','codeDiv'].filter("
+            "  id => { const e = document.getElementById(id);"
+            "          return e && getComputedStyle(e).display !== 'none'; })")
+        check('IDE 편집기는 한 번에 하나만', shown == ['blocklyDiv'], str(shown))
+        checked = fr.evaluate(
+            "() => Array.from(document.querySelectorAll('div[name=codetype] button'))"
+            "  .filter(b => b.classList.contains('checked')).map(b => b.name)")
+        check('IDE 전환 버튼도 블록에 켜져 있음', checked == ['block'], str(checked))
+
     # 12. window.open 이 한 번도 안 불렸나
     opened = pg.evaluate('window.__openCalls || 0')
     check('새 창이 열리지 않음', opened == 0, str(opened))

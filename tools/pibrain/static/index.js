@@ -1,3 +1,26 @@
+/* ── 경로 앞가지 (셸 프록시) ──────────────────────────────────
+   이 앱은 포트로 바로 열리기도 하고(:50000), 셸 프록시 뒤에서
+   /tools/ 아래로 열리기도 한다. 코드 곳곳이 '/led', '/camera'
+   같은 절대 경로를 쓰는데 프록시 뒤에서는 '/tools/led' 여야 한다.
+   프록시가 <head> 에 넣어 주는 window.__BASE__ 를 앞에 붙인다.
+   호출부 20 군데를 각각 고치는 대신 fetch/EventSource 를 한 겹 감싼다.
+   같은 출처의 절대 경로만 건드린다 ('//' 로 시작하는 것과 http(s):// 는 그대로).
+──────────────────────────────────────────────────────────── */
+const __BASE = (window.__BASE__ || '').replace(/\/$/, '');
+function __u(u) {
+  if (typeof u !== 'string') return u;
+  if (!__BASE) return u;
+  if (u[0] !== '/' || u[1] === '/') return u;
+  return __BASE + u;
+}
+if (__BASE) {
+  const _fetch = window.fetch.bind(window);
+  window.fetch = (u, opt) => _fetch(__u(u), opt);
+  const _ES = window.EventSource;
+  window.EventSource = function (u, opt) { return new _ES(__u(u), opt); };
+  window.EventSource.prototype = _ES.prototype;
+}
+
 /* ── Language ────────────────────────────────────────────────
    Depends on tools_ko2en.js (T, t(), lang) loaded first.
 ──────────────────────────────────────────────────────────── */
@@ -278,7 +301,10 @@ async function resetOled() {
 window.addEventListener('beforeunload', () => {
   fetch('/camera?d=off', { keepalive: true });
   fetch('/led_off',      { keepalive: true });
-  fetch(`http://${location.hostname}/tools?enable=off`, { keepalive: true }).catch(() => {});
+  /* 예전에는 여기서 허브의 /tools?enable=off 를 불러 tools 서비스를 껐다.
+     지금은 셸이 서비스 수명을 쥐고 있다(/api/service/tools/stop).
+     앱이 자기를 끄겠다고 나서면 셸과 싸우게 되므로 뺐다.
+     위 두 줄(카메라/LED 끄기)은 이 앱이 잡은 자원이라 그대로 둔다. */
 });
 
 /* ── Init ────────────────────────────────────────────────────*/

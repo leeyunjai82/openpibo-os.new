@@ -75,6 +75,9 @@ ide/               허브 — SPA shell + IDE + 리버스 프록시 (:80)
   envelope.py        응답 봉투 {type, result, data, elapsed_ms, device}
   static/shell.js    탭 라우팅 · 전환 · 설정 · 배지
 tools/             체험 도구 (:50000, /tools/ 로 접근)
+  launch.py        보드를 보고 아래 둘 중 하나를 띄운다
+  run_tools.py     파이보용   — socket.io, 장치/모션/비전/음성/시뮬
+  pibrain/         파이브레인용 — REST+SSE, 버튼/LED/카메라/음성/LCD
 classifier/        학습 도구 (:50010, /classify/ 로 접근)
 examples/pibo/     보드별 블록 예제
 examples/pibrain/
@@ -131,9 +134,9 @@ bash requirements/check.sh base server     # 명세와 환경이 맞는지
 **디자인 시스템은 `ide/static/theme.css` 한 파일이다.** 셸과 세 앱이 같은
 토큰(`--t-*`)을 보고, 앱들의 옛 변수(`--yellow`, `--teal` …)를 재정의해
 한 벌로 갈아입힌다. 셸과 iframe 안 앱의 바탕색이 픽셀 단위로 같아
-경계가 보이지 않는다(시험이 이를 지킨다). `tools/static/theme.css` 와
-`classifier/static/theme.css` 는 **복사본**이다 — 원본을 고치고 복사할 것,
-`test/run.sh` 가 3벌의 동일함을 검사한다.
+경계가 보이지 않는다(시험이 이를 지킨다). `tools/static/theme.css`,
+`tools/pibrain/static/theme.css`, `classifier/static/theme.css` 는 **복사본**이다 —
+원본을 고치고 복사할 것, `test/run.sh` 가 4벌의 동일함을 검사한다.
 
 - 탭 전환에 **페이지 리로드가 없다.** 주소는 `/app/<탭>` 으로 진짜로 남아서
   새로고침해도 그 탭이 열리고, 뒤로가기가 탭 사이를 오간다.
