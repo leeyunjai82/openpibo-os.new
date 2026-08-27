@@ -37,6 +37,17 @@ run "셸 UI (브라우저)" bash test/ui/run.sh
 run "파이썬 문법 (전체)" $PY -m compileall -q openpibo system ide classifier tools test
 
 echo
+echo "── theme.css 복사본 동일성 ──"
+# 원본은 ide/static/theme.css. 앱별 복사본이 어긋나면 심리스가 조용히 깨진다.
+if [ "$(md5sum ide/static/theme.css tools/static/theme.css classifier/static/theme.css \
+        | awk '{print $1}' | sort -u | wc -l)" = "1" ]; then
+  echo "  ok   3벌 동일"
+else
+  echo " FAIL  theme.css 복사본이 어긋났습니다. ide/static/theme.css 를 고치고 복사하세요."
+  failed=$((failed+1))
+fi
+
+echo
 echo "── 쉘 문법 ──"
 for f in system/init system/set_board.sh system/install.sh system/build_wheel.sh \
          system/units/install.sh system/units/capture-from-device.sh \

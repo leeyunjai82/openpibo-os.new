@@ -1,0 +1,139 @@
+/*
+ * openpibo 디자인 시스템 — 셸과 앱 전부가 이 한 파일을 본다.
+ *
+ * 왜 이렇게 하나
+ *   지금까지 셸과 앱이 제각각의 색을 들고 있어서 iframe 경계가 눈에 보였다.
+ *   세 앱(ide/tools/classifier)이 우연히 **같은 변수명**(--yellow, --teal ...)을
+ *   쓰고 있어서, 이 파일을 각 앱 CSS **뒤에** 한 번 얹으면
+ *   변수 재정의만으로 전체가 같은 옷을 입는다.
+ *
+ * 원본은 ide/static/theme.css 하나다.
+ *   tools/static/theme.css, classifier/static/theme.css 는 **복사본**이다
+ *   (각 서비스가 자기 static 만 서비스하므로).
+ *   고칠 때는 원본을 고치고 scripts 로 복사할 것 — 시험이 셋의 동일함을 지킨다.
+ *
+ * ── 새 팔레트 ────────────────────────────────────────────────
+ *   바탕      #f5f7fb   시원한 근백색. 셸과 앱이 같은 바탕 → 경계가 사라진다
+ *   표면      #ffffff
+ *   글자      #1c2740 / 보조 #64748b
+ *   브랜드    #5661f0   인디고
+ *   화면별    체험 #f59e0b / 코딩 #3b82f6 / 학습 #10b981 / 대화 #a855f7
+ */
+
+:root {
+  /* ── 새 토큰 (셸이 쓴다) ─────────────────────────────── */
+  --t-bg:      #f5f7fb;
+  --t-surface: #ffffff;
+  --t-ink:     #1c2740;
+  --t-ink-2:   #64748b;
+  --t-line:    #e2e8f0;
+  --t-brand:   #5661f0;
+  --t-brand-soft: #eef0fe;
+  --t-play:  #f59e0b;  --t-play-soft:  #fef3e2;
+  --t-code:  #3b82f6;  --t-code-soft:  #e8f1fe;
+  --t-learn: #10b981;  --t-learn-soft: #e6f9f1;
+  --t-chat:  #a855f7;  --t-chat-soft:  #f5ecfe;
+  --t-danger: #e11d48;
+  --t-ok:     #16a34a;
+  --t-radius: 12px;
+  --t-shadow: 0 1px 2px rgba(16,24,40,.05), 0 4px 16px rgba(16,24,40,.06);
+  --t-shadow-lg: 0 8px 30px rgba(16,24,40,.14);
+
+  /* ── 옛 변수 재정의 (앱들이 이걸 쓴다) ────────────────────
+     이 몇 줄이 리스킨의 지렛대다. 앱 CSS 는 손대지 않는다. */
+  --yellow:       #eef0fe;         /* 버튼 기본면: 브랜드 연한 색 */
+  --dark-yellow:  #dfe3fd;         /* hover / 헤더 */
+  --light-yellow: #f1f5f9;         /* 입력창 바탕 */
+  --light-green:  #f0f3f9;         /* IDE 파일 패널 */
+  --teal:         var(--t-brand);  /* 주요 동작 버튼 */
+  --dark-teal:    #4550d8;
+  --red:          var(--t-danger);
+  --dark-red:     #be123c;
+  --mid-gray:     #94a3b8;
+  --panel-bg:     var(--t-surface);
+  --navy-dark:    #cbd2fb;
+}
+
+/* ── 공통 바탕: 셸과 앱이 정확히 같은 색이어야 경계가 안 보인다 ── */
+body { background: var(--t-bg) !important; color: var(--t-ink); }
+
+/* ── 버튼: 아케이드식(딱딱한 그림자 + 눌림 이동) → 현대식 ─── */
+button, input[type="submit"] {
+  border: 1px solid var(--t-line);
+  border-radius: 10px;
+  box-shadow: 0 1px 2px rgba(16,24,40,.06);
+  color: var(--t-ink);
+  transition: background .12s, box-shadow .12s, transform .05s;
+}
+button:hover { font-weight: 600; }        /* bold 로 폭이 널뛰던 것 완화 */
+button:active { transform: translateY(1px); box-shadow: none; }
+
+button.btn-teal, input[type="submit"].btn-teal {
+  background: var(--t-brand); border-color: var(--t-brand);
+  color: #fff; box-shadow: 0 1px 2px rgba(86,97,240,.4);
+}
+button.btn-teal:hover { background: var(--dark-teal) !important; }
+button.btn-teal:active { box-shadow: none; }
+button.btn-red, input[type="submit"].btn-red {
+  background: var(--t-danger); border-color: var(--t-danger);
+  color: #fff; box-shadow: 0 1px 2px rgba(225,29,72,.4);
+}
+button.btn-red:hover { background: var(--dark-red) !important; }
+button.btn-red:active { box-shadow: none; }
+
+/* ── 입력 ───────────────────────────────────────────────────
+   앱들이 select/input 기본을 노란 반투명(rgba(248,242,172,.85))으로 깔아 놨다.
+   변수가 아니라 하드코딩이라 재정의로 못 잡는다 → 같은 폭의 선택자로 덮는다. */
+textarea, select, input,
+.stdin-wrap input[type="text"] {
+  background: var(--t-surface) !important;
+  border: 1px solid var(--t-line);
+  border-radius: 10px;
+  color: var(--t-ink);
+}
+input[type="checkbox"], input[type="radio"], input[type="range"],
+input[type="file"], input[type="color"] {
+  background: none !important; border: none;
+  accent-color: var(--t-brand);
+}
+input:focus, textarea:focus, select:focus {
+  outline: 2px solid var(--t-brand-soft);
+  border-color: var(--t-brand);
+}
+
+/* ── 링크 ───────────────────────────────────────────────── */
+a:link, a:visited { color: var(--t-brand); }
+a:hover, a:focus  { color: var(--dark-teal); }
+
+/* ── 포트로 직접 열었을 때의 앱 헤더 ─────────────────────
+   (셸 안에서는 header.title 이 통째로 감춰지므로 해당 없음) */
+header.title {
+  background: var(--t-surface) !important;
+  border-bottom: 1px solid var(--t-line);
+  box-shadow: none !important;
+}
+
+/* ── 표면 계열: 옛 회백색/베이지를 새 바탕으로 ───────────── */
+.filebox, .fm-table-wrap { background: var(--t-surface); }
+.sidebar-path { background: var(--t-bg) !important; }
+
+/* IDE 사이드바 버튼: 회색 밑단(box-shadow 0 3px)과 버튼별 인라인 색
+   (새 폴더가 분홍 등)이 남는다. 인라인 style 을 이기려면 !important 가 필요하다. */
+.sidebar-btn, label.sidebar-btn {
+  background: var(--t-surface) !important;
+  border: 1px solid var(--t-line) !important;
+  box-shadow: 0 1px 2px rgba(16,24,40,.06) !important;
+  color: var(--t-ink);
+}
+.sidebar-btn:hover, label.sidebar-btn:hover {
+  background: var(--t-brand-soft) !important; color: var(--t-brand);
+}
+.sidebar-btn:active, label.sidebar-btn:active {
+  top: 0 !important; transform: translateY(1px); box-shadow: none !important;
+}
+
+/* ── 스크롤바: 전 화면 통일 ──────────────────────────────── */
+* { scrollbar-width: thin; scrollbar-color: #c3cbdb transparent; }
+*::-webkit-scrollbar { width: 8px; height: 8px; }
+*::-webkit-scrollbar-thumb { background: #c3cbdb; border-radius: 8px; }
+*::-webkit-scrollbar-track { background: transparent; }

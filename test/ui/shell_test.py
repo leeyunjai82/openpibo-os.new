@@ -45,17 +45,17 @@ with sync_playwright() as pw:
 
     # 3. 홈이 기본
     check('홈이 기본 화면', pg.is_visible('#home_pane'))
-    cards = pg.eval_on_selector_all('#home_cards .card .name', 'els => els.map(e=>e.textContent)')
-    # 카드 이름은 기존 landing.html 과 같아야 한다 (디자인·용어 일관성)
-    check('홈 카드가 기존 화면과 같은 이름',
-          cards == ['Tools','IDE','Classifier','Chat Bot'], str(cards))
-    check('카드 색이 앱별로 다름 (landing 과 동일)',
-          len(set(pg.eval_on_selector_all('#home_cards .card',
-              'els=>els.map(e=>getComputedStyle(e).borderTopColor)'))) == 4)
-    check('상단바가 금색 (기존 header 와 동일)',
-          pg.eval_on_selector('.topbar', 'e=>getComputedStyle(e).backgroundColor')
-          == 'rgb(249, 195, 0)',
-          pg.eval_on_selector('.topbar', 'e=>getComputedStyle(e).backgroundColor'))
+    cards = pg.eval_on_selector_all('#home_cards .card .name',
+        'els => els.map(e=>e.textContent.trim().split(" ")[0])')
+    # 카드 이름은 탭과 같은 한글이어야 한다. 탭엔 "학습", 카드엔 "Classifier" 면
+    # 같은 화면인지 아이가 알 수 없다.
+    check('홈 카드 이름이 탭과 같음', cards == ['체험','코딩','학습','대화'], str(cards))
+    icons = set(pg.eval_on_selector_all('#home_cards .card .card-icon',
+        'els=>els.map(e=>getComputedStyle(e).color)'))
+    check('카드 아이콘 색이 앱별로 다름 (길찾기)', len(icons) == 4, str(len(icons)))
+    # 심리스의 기준: 셸 바탕이 디자인 토큰(--t-bg)과 일치
+    bg = pg.evaluate('getComputedStyle(document.body).backgroundColor')
+    check('셸 바탕이 디자인 토큰과 일치', bg == 'rgb(245, 247, 251)', bg)
 
     # 여기까지는 iframe 이 하나도 없다. 이 시점의 에러만 셸 것이다.
     # 아래에서 진짜 IDE 를 붙이면 그 앱 자신의 에러(io/socket 미정의 등)가 섞이는데,
@@ -92,6 +92,14 @@ with sync_playwright() as pw:
         'f=>{const h=f.contentDocument.querySelector("header.title");'
         ' return h ? getComputedStyle(h).display : "없음";}')
     check('셸 안: 앱 헤더가 통째로 감춰짐 (바 한 줄)', hdr == 'none', hdr)
+
+    # 심리스의 핵심: 셸과 iframe 안 앱의 바탕색이 픽셀 단위로 같아야
+    # 경계가 보이지 않는다. theme.css 가 양쪽에 같은 토큰을 준다.
+    shell_bg = pg.evaluate('getComputedStyle(document.body).backgroundColor')
+    app_bg = pg.eval_on_selector('#frame_code',
+        'f=>getComputedStyle(f.contentDocument.body).backgroundColor')
+    check('셸과 앱의 바탕색이 같음 (심리스)', shell_bg == app_bg,
+          f'{shell_bg} vs {app_bg}')
 
     pg.wait_for_selector('#app_actions > *', timeout=10000)
     titles = pg.eval_on_selector_all('#app_actions > *', 'els=>els.map(e=>e.title)')

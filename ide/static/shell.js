@@ -553,10 +553,12 @@ function buildHomeCards() {
     b.innerHTML =
       `<span class="card-icon"><i class="fa-solid ${t.icon}"></i></span>` +
       `<span class="card-body">` +
-        `<span class="name">${esc(t.name)}</span>` +
+        // 이름은 탭과 같은 한글. 탭에 "학습", 카드에 "Classifier" 면 용어가 갈린다.
+        // 영문 이름은 작은 보조 표기로 남긴다.
+        `<span class="name">${esc(t.tab)} <small class="name-en">${esc(t.name)}</small></span>` +
         `<span class="desc">${t.desc || ''}</span>` +
       `</span>` +
-      `<span class="card-btn">열기 →</span>`;
+      `<span class="card-btn">열기 <i class="fa-solid fa-arrow-right"></i></span>`;
     b.onclick = () => go(t.id);
     wrap.appendChild(b);
   });
