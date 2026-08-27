@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenPibo H/W TEST - DOS MODE</title>
+    <style>
+        :root {
+            /* DOS Theme Color Palette */
+            --bg-color: #000000;
+            --text-color: #00FF00; /* Classic Green */
+            --primary-color: #00AAAA; /* Cyan for highlights */
+            --border-color: #00FF00;
+            --success-color: #FFFFFF; /* Bright White for Success */
+            --fail-color: #FF5555;    /* Bright Red for Fail */
+            --ready-color: #FFFF55;   /* Bright Yellow for Ready */
+            --testing-color: #55FFFF; /* Bright Cyan for Testing */
+            --gap-size: 15px;
+        }
+
+        /* 기본 스타일 초기화 */
+        * { box-sizing: border-box; }
+        body {
+            font-family: "Perfect DOS VGA 437", "Courier New", Courier, monospace;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: var(--gap-size);
+            font-size: 12px;
+            height: 100vh;
+            overflow: hidden; /* 전체 페이지 스크롤 방지 */
+            text-transform: uppercase;
+        }
+
+        /* ASCII 스타일 카드 */
+        .card {
+            background-color: transparent;
+            border: 2px double var(--border-color);
+            border-radius: 0;
+            padding: 15px;
+        }
+
+        .card h1 {
+            color: var(--primary-color);
+        }
+        
+        /* =================================
+           ▼▼▼ 레이아웃 원본 유지 ▼▼▼
+           ================================= */
+        .main-layout {
+            display: grid;
+            grid-template-columns: 1.5fr 3.5fr 3fr;
+            gap: var(--gap-size);
+            height: 100%;
+        }
+
+        #test-items-panel {
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+        #test-items-panel .table-container {
+            flex-grow: 1;
+            overflow-y: auto; /* 내용 길어지면 스크롤 */
+        }
+        .halt-button {
+            flex-shrink: 0;
+        }
+        #left-column {
+            display: flex;
+            flex-direction: column;
+            gap: var(--gap-size);
+            min-height: 0;
+        }
+        #system-info-panel {
+            flex-shrink: 0; 
+        }
+        #camera-output {
+            flex-grow: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+        }
+        #camera-image-container {
+            flex-grow: 1;
+        }
+        #system-output {
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+        #system-log {
+            flex-grow: 1;
+            overflow-y: auto;
+        }
+
+        /* 화면이 좁아지면 1단 레이아웃으로 변경 (원본 유지) */
+        @media (max-width: 1200px) {
+            body { height: auto; overflow: auto; }
+            .main-layout {
+                grid-template-columns: 1fr;
+                height: auto;
+            }
+        }
+        /* =================================
+           ▲▲▲ 레이아웃 원본 유지 끝 ▲▲▲
+           ================================= */
+
+        h1, h2 { 
+            margin: 0 0 10px 0;
+            font-weight: normal;
+        }
+        h1 {
+            font-size: 1.2rem;
+            text-align: center;
+            color: var(--text-color);
+            padding-bottom: 5px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        h2 {
+            font-size: 1rem;
+            color: var(--primary-color);
+        }
+        h2::before {
+            content: "■ ";
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 5px;
+            font-size: 1em;
+        }
+        .info-item {
+            background-color: transparent;
+            padding: 0;
+            border-radius: 0;
+        }
+        .info-item b {
+            color: var(--ready-color);
+            font-weight: normal;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 1em;
+        }
+        th, td {
+            border: 1px solid var(--border-color);
+            padding: 8px;
+            text-align: left;
+            word-break: break-word;
+        }
+        th {
+            background-color: var(--text-color);
+            color: var(--bg-color);
+            font-size: 1em;
+            font-weight: normal;
+        }
+        .status {
+            font-weight: normal;
+            text-align: center;
+            border-radius: 0;
+            padding: 0;
+            text-transform: uppercase;
+            font-size: 1em;
+            background-color: transparent !important;
+        }
+        .status::before { content: '[ '; }
+        .status::after { content: ' ]'; }
+        .status.ready { color: var(--ready-color); }
+        .status.testing { color: var(--testing-color); }
+        .status.success { color: var(--success-color); }
+        .status.fail { color: var(--fail-color); }
+
+        button {
+            background: transparent;
+            color: var(--text-color);
+            border: none;
+            padding: 5px 10px;
+            border-radius: 0;
+            cursor: pointer;
+            font-size: 1em;
+            font-family: inherit;
+            transition: none;
+            text-transform: uppercase;
+        }
+        button::before { content: '[ '; }
+        button::after { content: ' ]'; }
+        button:hover {
+            background-color: var(--text-color);
+            color: var(--bg-color);
+        }
+        button:disabled {
+            color: #555;
+            cursor: not-allowed;
+            background-color: transparent;
+        }
+
+        .halt-button {
+            background-color: transparent;
+            color: var(--fail-color);
+            width: 100%;
+            margin-top: 10px;
+            padding: 10px;
+            font-size: 1em;
+            border: 1px solid var(--fail-color);
+        }
+        .halt-button:hover {
+            background-color: var(--fail-color);
+            color: var(--bg-color);
+        }
+
+        #camera-image-container {
+            display: flex; justify-content: center; align-items: center;
+            min-height: 120px;
+            border: 1px dashed var(--border-color);
+        }
+        #camera-image-container img {
+            max-width: 100%; max-height: 100%; object-fit: contain;
+            border-radius: 0;
+            border: 1px solid var(--border-color);
+        }
+
+        #system-log {
+            font-family: "Perfect DOS VGA 437", "Courier New", Courier, monospace;
+            background-color: #0A0A0A;
+            padding: 15px;
+            border-radius: 0;
+            font-size: 1em;
+            white-space: pre-wrap;
+            word-break: break-all;
+            border: 1px solid var(--border-color);
+        }
+    </style>
+</head>
+<body>
+
+<div class="main-layout">
+    <div id="left-column">
+        <header class="card" id="system-info-panel">
+            <h1>PIBO H/W DIAGNOSTICS</h1>
+            <div class="info-grid" id="info-grid">
+                <div class="info-item"><b>SERIAL:</b> <span id="info-serial">LOADING...</span></div>
+                <div class="info-item"><b>FIRMWARE:</b> <span id="info-firmware">LOADING...</span></div>
+                <div class="info-item"><b>OS VERSION:</b> <span id="info-os">LOADING...</span></div>
+                <div class="info-item"><b>BOARD:</b> <span id="info-board">LOADING...</span></div>
+                <div class="info-item"><b>MEMORY:</b> <span id="info-memory">LOADING...</span></div>
+            </div>
+        </header>
+        <div class="card" id="camera-output">
+            <h2>CAMERA OUTPUT</h2>
+            <div id="camera-image-container">EXECUTE CAMERA TEST TO DISPLAY IMAGE.</div>
+        </div>
+    </div>
+
+    <div class="card" id="test-items-panel">
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>TEST ITEM</th>
+                        <th style="width: 120px; text-align: center;">STATUS</th>
+                        <th style="width: 100px; text-align: center;">ACTION</th>
+                    </tr>
+                </thead>
+                <tbody id="test-table-body">
+                </tbody>
+            </table>
+        </div>
+        <button class="halt-button" onclick="haltSystem()">SYSTEM HALT</button>
+    </div>
+
+    <div class="card" id="system-output">
+        <h2>SYSTEM LOG</h2>
+        <div id="system-log">AWAITING SYSTEM TEST...</div>
+    </div>
+
+</div>
+<script>
+    // 자바스크립트 로직은 변경할 필요 없이 그대로 작동합니다.
+    const API_BASE_URL = '';
+    let isTestRunning = false;
+    const tests = [
+        { name: 'OLED', id: 'oled' }, { name: '오디오 (사운드 재생)', id: 'audio' }, { name: '모든 모터', id: 'motor' },
+        { name: '마이크 (녹음 및 재생)', id: 'mic' }, { name: '카메라', id: 'camera' }, { name: '네오픽셀 LED', id: 'neopixel' },
+        { name: '시스템 센서 (PIR/Touch/Button/DC)', id: 'system' }, { name: '배터리 상태', id: 'battery' }
+    ];
+
+    const asleep = ms => {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    };
+
+    document.addEventListener('DOMContentLoaded', () => { fetchSystemInfo(); renderTestTable(); });
+    function renderTestTable() {
+        const tableBody = document.getElementById('test-table-body');
+        tableBody.innerHTML = '';
+        tests.forEach(test => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${test.name}</td>
+                <td><span class="status ready" id="status-${test.id}">준비</span></td>
+                <td style="text-align: center;">
+                    <button id="btn-${test.id}" onclick="runTest('${test.id}')">실행</button>
+                </td>
+            `;
+            tableBody.appendChild(row);
+        });
+    }
+    async function fetchSystemInfo() {
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/system-info`);
+            if (!response.ok) throw new Error('시스템 정보를 가져오지 못했습니다.');
+            const data = await response.json();
+            document.getElementById('info-serial').textContent = data.serial;
+            document.getElementById('info-firmware').textContent = data.firmware;
+            document.getElementById('info-os').textContent = data.os_version;
+            document.getElementById('info-board').textContent = data.board;
+            document.getElementById('info-memory').textContent = data.memory;
+        } catch (error) {
+            console.error('시스템 정보 로딩 오류:', error);
+            ['serial', 'firmware', 'os', 'board', 'memory'].forEach(id => {
+                document.getElementById(`info-${id}`).textContent = '오류';
+            });
+        }
+    }
+    function toggleAllButtons(enable) { document.querySelectorAll('button').forEach(btn => btn.disabled = !enable); isTestRunning = !enable; }
+    function updateStatus(testId, status, text) { const statusEl = document.getElementById(`status-${testId}`); statusEl.className = `status ${status}`; statusEl.textContent = text; }
+
+    async function runTest(testId) {
+        if (isTestRunning) return;
+
+        toggleAllButtons(false);
+        updateStatus(testId, 'testing', '테스트중...');
+
+        if (testId === 'camera') {
+            await runCameraTest(testId);
+        } else {
+            const success = (testId === 'system') ? await runSystemStreamTest(testId) : await runStandardTest(testId);
+
+            if (success) {
+                const testInfo = tests.find(t => t.id === testId);
+                const isConfirmed = confirm(`'${testInfo.name}' 테스트가 성공했나요?`);
+                updateStatus(testId, isConfirmed ? 'success' : 'fail', isConfirmed ? '성공' : '실패');
+            } else {
+                updateStatus(testId, 'fail', '실패');
+            }
+        }
+
+        toggleAllButtons(true);
+    }
+
+    async function runStandardTest(testId) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/test/${testId}`, { method: 'POST' });
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || '서버에서 테스트 실패');
+            }
+            const result = await response.json();
+            if(testId === 'battery') {
+                alert(`배터리 상태: ${result.battery_status}`);
+            }
+            return true;
+        } catch (error) {
+            console.error(`${testId} 테스트 중 오류:`, error);
+            alert(`${testId} 테스트 중 오류가 발생했습니다: ${error.message}`);
+            return false;
+        }
+    }
+
+    async function runCameraTest(testId) {
+        const container = document.getElementById('camera-image-container');
+        container.textContent = '이미지 캡처중...';
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/test/camera`);
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || '서버에서 이미지를 가져오지 못했습니다.');
+            }
+            const imageBlob = await response.blob();
+            const imageUrl = URL.createObjectURL(imageBlob);
+            const img = document.createElement('img');
+
+            await new Promise((resolve, reject) => {
+                img.onload = resolve;
+                img.onerror = reject;
+                img.src = imageUrl;
+            });
+
+            container.innerHTML = '';
+            container.appendChild(img);
+
+            await asleep(1000);
+
+            const isConfirmed = confirm('카메라 이미지가 정상적으로 보입니까?');
+            if (isConfirmed) {
+                updateStatus(testId, 'success', '성공');
+            } else {
+                updateStatus(testId, 'fail', '실패');
+            }
+        } catch (error) {
+            console.error('카메라 테스트 오류:', error);
+            container.textContent = `카메라 테스트 실패: ${error.message}`;
+            updateStatus(testId, 'fail', '실패');
+        }
+    }
+
+    async function runSystemStreamTest(testId) {
+        const logEl = document.getElementById('system-log');
+        logEl.innerHTML = '';
+        const eventSource = new EventSource(`${API_BASE_URL}/api/test/system`);
+
+        return new Promise(resolve => {
+            let streamSuccess = true;
+            eventSource.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                if (data.error) {
+                    logEl.innerHTML += `오류: ${data.error}\n`;
+                    streamSuccess = false;
+                    eventSource.close();
+                    resolve(streamSuccess);
+                    return;
+                }
+                logEl.innerHTML += `PIR: ${data.pir}, Touch: ${data.touch}, Button: ${data.button}, DC: ${data.dc}\n`;
+                logEl.scrollTop = logEl.scrollHeight;
+            };
+            eventSource.onerror = function(err) {
+                logEl.innerHTML += '\n스트림 연결 오류 또는 서버에 의해 종료됨.';
+                streamSuccess = false;
+                eventSource.close();
+                resolve(streamSuccess);
+            };
+            setTimeout(() => {
+                if(eventSource.readyState !== EventSource.CLOSED) {
+                    eventSource.close();
+                    resolve(streamSuccess);
+                }
+            }, 19000);
+        });
+    }
+
+    function haltSystem() {
+        if (isTestRunning) { alert("테스트가 실행 중일 때는 종료할 수 없습니다."); return; }
+        if (confirm("정말로 시스템을 종료하시겠습니까? 이 작업은 되돌릴 수 없습니다.")) {
+            fetch(`${API_BASE_URL}/api/halt`, { method: 'POST' })
+                .then(response => response.json()).then(data => {
+                    alert(data.message);
+                    document.body.innerHTML = "<h1>시스템을 종료하는 중입니다...</h1>";
+                }).catch(error => {
+                    console.error("종료 명령 실패:", error);
+                    alert("종료 명령을 보내는 데 실패했습니다.");
+                });
+        }
+    }
+</script>
+</body>
+</html>

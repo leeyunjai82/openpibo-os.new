@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+  <head>
+    <title>Tools for piBo</title>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0 user-scalable=no" />
+    <meta name="mobile-web-app-capable" content="yes" />
+
+    <link rel="stylesheet" href="../static/all.min.css?ver=240110v1" type="text/css" />
+    <link rel="stylesheet" href="../static/jquery.jsonview.min.css" />
+    <link rel="stylesheet" href="../static/index.css?ver=260320v1" />
+    <link rel="stylesheet" href="../static/simulator.css?ver=240110v1" />
+    <link rel="shortcut icon" href="../static/icon.png" type="image/x-icon" />
+
+    <script src="../static/jquery-3.1.1.min.js"></script>
+    <script src="../static/jquery.jsonview.min.js"></script>
+    <script src="../static/socket.io.min.js?ver=240110v1"></script>
+  </head>
+  <body>
+    <header class="title">
+      <div style="float:left">
+        <h2>
+          <i class="fa-solid fa-microchip">Tools <span id="state"></span></i>&nbsp;
+          <span id="onoff_val"></span>
+          <span id="onoff_count"></span>
+        </h2>
+      </div>
+      <div style="float:right">
+        <h2 style="display: flex; align-items: center; justify-content: center;">
+          <i class="fa-solid fa-volume-high"></i>&nbsp;
+          <select id="volume">
+            <option value="100">100</option>
+            <option value="90">90</option>
+            <option value="80" selected>80</option>
+            <option value="70">70</option>
+            <option value="60">60</option>
+            <option value="50">50</option>
+            <option value="40">40</option>
+            <option value="30">30</option>
+            <option value="20">20</option>
+            <option value="10">10</option>
+            <option value="0">0</option>
+          </select>&nbsp;&nbsp;
+          <a id="fullscreen_bt"><span id='fullscreen_txt'></span></a>&nbsp;&nbsp;
+          <button id="lang-toggle">EN</button>
+          <select id="language" style="display:none">
+            <option value="ko">한국어</option>
+            <option value="en">English</option>
+          </select>&nbsp;
+          <a id="logo_bt">
+            <img src="../static/themaker.png" style="height:22px" />
+          </a>
+        </h2>
+      </div>
+    </header>
+
+    <div class="alert-popup" id="alertPopup" style="display:none;">
+      <div class="alert-popup-content">
+        <p id="alertMessageElement">alert text</p>
+        <div class="popup-buttons">
+          <button id="alertOkBtn"><span data-key="confirm"></span></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="prompt-popup" id="promptPopup" style="display:none;">
+      <div class="prompt-popup-content">
+        <p id="promptMessageElement">prompt text</p>
+        <input type="text" id="promptInputElement" />
+        <div class="popup-buttons">
+          <button id="promptOkBtn"><span data-key="confirm"></span></button>
+          <button id="promptCancelBtn"><span data-key="cancel"></span></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="confirm-popup" id="confirmPopup" style="display:none;">
+      <div class="confirm-popup-content">
+        <p id="confirmMessageElement">confirm text</p>
+        <div class="popup-buttons">
+          <button id="confirmOkBtn"><span data-key="confirm"></span></button>
+          <button id="confirmCancelBtn"><span data-key="cancel"></span></button>
+        </div>
+      </div>
+    </div>
+
+    <main>
+      <nav>
+        <ul>
+          <li><button name="device"><span class="nav-label" data-key="nav_device">장치</span></button></li>
+          <li><button name="motion"><span class="nav-label" data-key="nav_motion">모션</span></button></li>
+          <li><button name="vision"><span class="nav-label" data-key="nav_vision">비전</span></button></li>
+          <li><button name="speech"><span class="nav-label" data-key="nav_speech">음성</span></button></li>
+          <li><button name="simulator"><span class="nav-label" data-key="nav_simulator">시뮬</span></button></li>
+        </ul>
+      </nav>
+
+      <div class="content">
+        <div class="wrapper">
+          <article id="article_device">
+            <section>
+              <div class="section-header">
+                <h3 class="mark"><span data-key="eyecolor_setting"></span></h3>
+                <button id="eye_reset_bt">
+                  <i class="fa-solid fa-eraser"></i>
+                  <span data-key="reset"></span>
+                </button>
+              </div>
+
+              <div class="eye-color-group">
+                <div class="eye-color-input-group">
+                  <div class="eye-color-header">
+                    <span class="label"><span data-key="right"></span></span>
+                    <input type="color" id="eye_color_picker_r" class="eye-color-picker" value="#000000" title="색상 선택">
+                  </div>
+                  <div>
+                    <div>
+                      <label for="d_n0_val" class="label" style="color:red"><span data-key="red"></span></label>
+                      <input type="number" name="d_n0_val" id="d_n0_val" value="0" min="0" step="5" max="255" pattern="\d*" />
+                    </div>
+                    <div>
+                      <label for="d_n1_val" class="label" style="color:green"><span data-key="green"></span></label>
+                      <input type="number" name="d_n1_val" id="d_n1_val" value="0" min="0" step="5" max="255" pattern="\d*" />
+                    </div>
+                    <div>
+                      <label for="d_n2_val" class="label" style="color:blue"><span data-key="blue"></span></label>
+                      <input type="number" name="d_n2_val" id="d_n2_val" value="0" min="0" step="5" max="255" pattern="\d*" />
+                    </div>
+                  </div>
+                </div>
+                <div class="eye-color-input-group">
+                  <div class="eye-color-header">
+                    <span class="label"><span data-key="left"></span></span>
+                    <input type="color" id="eye_color_picker_l" class="eye-color-picker" value="#000000" title="색상 선택">
+                  </div>
+                  <div>
+                    <div>
+                      <label for="d_n3_val" class="label" style="color:red"><span data-key="red"></span></label>
+                      <input type="number" name="d_n3_val" id="d_n3_val" value="0" min="0" step="5" max="255" pattern="\d*" />
+                    </div>
+                    <div>
+                      <label for="d_n4_val" class="label" style="color:green"><span data-key="green"></span></label>
+                      <input type="number" name="d_n4_val" id="d_n4_val" value="0" min="0" step="5" max="255" pattern="\d*" />
+                    </div>
+                    <div>
+                      <label for="d_n5_val" class="label" style="color:blue"><span data-key="blue"></span></label>
+                      <input type="number" name="d_n5_val" id="d_n5_val" value="0" min="0" step="5" max="255" pattern="\d*" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div style="margin-top: 20px">
+                <h3 class="mark"><span data-key="audio_use">오디오 사용하기</span></h3>
+                <div class="subsection-label" data-key="mic">*마이크</div>
+                <div class="tool-row" style="margin-top: 8px">
+                  <input type="number" name="mic_time_val" id="mic_time_val" value="5" min="1" max="30" pattern="\d*" style="width:55px" />
+                  <span class="label" data-key="second">초</span>
+                  <button id="mic_bt">
+                    <i class="fa-solid fa-microphone"></i>
+                    <span data-key="record">녹음</span>
+                  </button>
+                  <button id="mic_replay_bt">
+                    <i class="fa-solid fa-repeat"></i>
+                    <span data-key="replay">재생</span>
+                  </button>
+                  <span id="mic_status"></span>
+                  <span id="mic_timer" class="mic-timer"></span>
+                </div>
+                <audio id="mic_audio_player" controls style="display:none;width:100%;margin-top:8px"></audio>
+              </div>
+
+              <div style="margin-top: 16px">
+                <div class="subsection-label" data-key="audio_play">*음악 재생</div>
+                <div class="tool-row" style="margin-top: 8px">
+                  <select id="audiopath" name="audiopath">
+                    <option value="-" data-key="category">카테고리</option>
+                    <option value="/home/pi/openpibo-files/audio/animal" data-key="animal_audio">동물</option>
+                    <option value="/home/pi/openpibo-files/audio/effect" data-key="effect">효과음</option>
+                    <option value="/home/pi/openpibo-files/audio/music" data-key="music">음악</option>
+                    <option value="/home/pi/openpibo-files/audio/piano" data-key="piano">피아노</option>
+                    <option value="/home/pi/openpibo-files/audio/voice" data-key="voice">목소리</option>
+                    <option value="/home/pi/myaudio" data-key="myaudio">내 오디오</option>
+                  </select>
+                  <select id="audiofiles" name="audiofiles">
+                    <option value="-" data-key="file">파일</option>
+                  </select>
+                  <button id="play_audio_bt">
+                    <i class="fa-solid fa-play"></i>
+                    <span data-key="play">재생</span>
+                  </button>
+                  <button id="stop_audio_bt">
+                    <i class="fa-solid fa-stop"></i>
+                    <span data-key="stop">정지</span>
+                  </button>
+                </div>
+                <audio id="audio_player" controls style="display:none;width:100%;margin-top:8px"></audio>
+              </div>
+
+              <div style="margin-top: 16px">
+                <div class="subsection-label" data-key="upload_to_myaudio">*내 오디오에 업로드</div>
+                <div class="upload-area" style="margin-top:8px">
+                  <span class="upload-area-btn"><i class="fa-solid fa-file-upload"></i>&nbsp;<span data-key="upload">업로드</span></span>
+                  <span class="upload-area-hint" data-key="drag_hint"></span>
+                  <input type="file" id="upload_audio" name="upload_audio" accept=".mp3, .wav" />
+                </div>
+              </div>
+            </section>
+
+            <section>
+              <div class="section-header">
+                <h3 class="mark"><span data-key="oled_use"></span></h3>
+                <button id="clear_oled_bt">
+                  <i class="fa-solid fa-eraser"></i>
+                  <span data-key="reset"></span>
+                </button>
+              </div>
+              <div class="oled-group">
+                <div class="subsection-label" data-key="enter_text">*텍스트 출력</div>
+                <div style="margin-top: 8px" class="tool-row input-wrap">
+                  <label for="d_ox_val" class="label"><i class="fa-solid fa-x"></i></label>
+                  <input type="number" name="d_ox_val" id="d_ox_val" value="0" min="0" max="128" pattern="\d*" />
+                  <label for="d_oy_val" class="label"><i class="fa-solid fa-y"></i></label>
+                  <input type="number" name="d_oy_val" id="d_oy_val" value="0" min="0" max="64" pattern="\d*" />
+                  <label for="d_osize_val" class="label"><i class="fa-solid fa-text-width"></i></label>
+                  <input type="number" name="d_osize_val" id="d_osize_val" value="10" min="1" max="50" pattern="\d*" />
+                </div>
+                <div style="margin-top: 5px; display:flex; align-items:center; gap:6px; width:100%">
+                  <label for="d_otext_val" class="label" style="flex-shrink:0"><i class="fa-solid fa-keyboard"></i></label>
+                  <input type="text" name="d_otext_val" id="d_otext_val" style="flex:1; min-width:0" />
+                  <button id="oled_bt" style="flex-shrink:0">
+                    <i class="fa-solid fa-display"></i>
+                    <span data-key="display">출력</span>
+                  </button>
+                </div>
+
+                <div style="margin-top: 16px">
+                  <div class="subsection-label" data-key="enter_image_robot">*이미지 출력</div>
+                  <div style="margin-top: 8px" class="tool-row">
+                    <select id="oledpath" name="oledpath">
+                      <option value="-" data-key="category">카테고리</option>
+                      <option value="/home/pi/openpibo-files/image/animal" data-key="animal_image">동물</option>
+                      <option value="/home/pi/openpibo-files/image/expression" data-key="expression">표정</option>
+                      <option value="/home/pi/openpibo-files/image/family" data-key="family">가족</option>
+                      <option value="/home/pi/openpibo-files/image/food" data-key="food">음식</option>
+                      <option value="/home/pi/openpibo-files/image/furniture" data-key="furniture">가구</option>
+                      <option value="/home/pi/openpibo-files/image/game" data-key="game">게임</option>
+                      <option value="/home/pi/openpibo-files/image/goods" data-key="goods">물건</option>
+                      <option value="/home/pi/openpibo-files/image/kitchen" data-key="kitchen">주방</option>
+                      <option value="/home/pi/openpibo-files/image/machine" data-key="machine">기계</option>
+                      <option value="/home/pi/openpibo-files/image/recycle" data-key="recycle">재활용</option>
+                      <option value="/home/pi/openpibo-files/image/sport" data-key="sport">스포츠</option>
+                      <option value="/home/pi/openpibo-files/image/transport" data-key="transport">교통</option>
+                      <option value="/home/pi/openpibo-files/image/weather" data-key="weather">날씨</option>
+                      <option value="/home/pi/openpibo-files/image/marker" data-key="marker">마커</option>
+                      <option value="/home/pi/openpibo-files/image/etc" data-key="etc">기타</option>
+                      <option value="/home/pi/openpibo-files/image/sample" data-key="sample">샘플</option>
+                      <option value="/home/pi/myimage" data-key="myimage">내 이미지</option>
+                    </select>
+                    <select id="oledfiles" name="oledfiles">
+                      <option value="-" data-key="file">파일</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div style="margin-top: 16px">
+                  <div class="subsection-label" data-key="upload_to_myimage">*내 이미지에 업로드</div>
+                  <div class="upload-area" style="margin-top:8px">
+                    <span class="upload-area-btn"><i class="fa-solid fa-file-upload"></i>&nbsp;<span data-key="upload">업로드</span></span>
+                    <span class="upload-area-hint" data-key="drag_hint"></span>
+                    <input type="file" id="upload_image" name="upload_image" accept=".jpg, .png" />
+                  </div>
+                </div>
+              </div>
+              <div class="device-status-group">
+                <div style="margin-top: 16px">
+                  <h3 class="mark" data-key="check_sensor">센서 확인</h3>
+                  <div class="sensor-row">
+                    <i class="fa-solid fa-person-rays"></i>
+                    <span class="label" data-key="check_pir">PIR</span>
+                    <span id="d_pir_val" class="sensor-val"></span>
+                  </div>
+                  <div class="sensor-row">
+                    <i class="fa-solid fa-hand-sparkles"></i>
+                    <span class="label" data-key="check_touch">터치</span>
+                    <span id="d_touch_val" class="sensor-val"></span>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </article>
+
+          <article id="article_motion" class="margin">
+            <section class="pibo-section">
+              <div>
+                <div style="float:left">
+                  <button id="init_bt">
+                    <i class="fa-solid fa-person"></i>
+                    <span data-key="init_motors"></span>
+                  </button>
+                </div>
+                <div style="float:right">
+                  <span data-key="time"></span>
+                  <input type="number" name="m_time_val" id="m_time_val" min="0" max="300" step="0.1" value="0" pattern="\d*" />
+                  <button id="add_frame_bt" class="btn-teal">
+                    <i class="fa-solid fa-plus"></i>
+                    <span data-key="add"></span>
+                  </button>
+                </div>
+              </div>
+              <img src="../static/pibo_body.min.png" alt="pibo body" />
+              <div class="motion-input-group">
+                <div class="motion-input-row">
+                  <div>
+                    <div class="motion-input-label">
+                      <span class="label">M5(Head Tilt)</span>
+                      <input type="number" name="head_tilt_value" id="m5_value" min="-25" max="25" pattern="\d*" />
+                    </div>
+                    <input type="range" name="head_tilt_range" id="m5_range" min="-25" max="25" />
+                  </div>
+                </div>
+                <div class="motion-input-row">
+                  <div>
+                    <div class="motion-input-label">
+                      <span class="label">M4(Head Pan)</span>
+                      <input type="number" name="head_pan_value" id="m4_value" min="-50" max="50" pattern="\d*" />
+                    </div>
+                    <input type="range" name="head_pan_range" id="m4_range" min="-50" max="50" />
+                  </div>
+                </div>
+                <div class="motion-input-row">
+                  <div>
+                    <div class="motion-input-label">
+                      <span class="label">M2(Right Arm)</span>
+                      <input type="number" name="right_arm_value" id="m2_value" min="-80" max="80" pattern="\d*" />
+                    </div>
+                    <input type="range" name="right_arm_range" id="m2_range" min="-80" max="80" />
+                  </div>
+                  <div>
+                    <div class="motion-input-label">
+                      <span class="label">M8(Left Arm)</span>
+                      <input type="number" name="left_arm_value" id="m8_value" min="-80" max="80" pattern="\d*" />
+                    </div>
+                    <input type="range" name="left_arm_range" id="m8_range" min="-80" max="80" />
+                  </div>
+                </div>
+                <div class="motion-input-row">
+                  <div>
+                    <div class="motion-input-label">
+                      <span class="label">M3(Right Hand)</span>
+                      <input type="number" name="right_hand_value" id="m3_value" min="-30" max="30" pattern="\d*" />
+                    </div>
+                    <input type="range" name="right_hand_range" id="m3_range" min="-30" max="30" />
+                  </div>
+                  <div>
+                    <div class="motion-input-label">
+                      <span class="label">M9(Left Hand)</span>
+                      <input type="number" name="left_hand_value" id="m9_value" min="-30" max="30" pattern="\d*" />
+                    </div>
+                    <input type="range" name="left_hand_range" id="m9_range" min="-30" max="30" />
+                  </div>
+                </div>
+                <div class="motion-input-row">
+                  <div>
+                    <div class="motion-input-label">
+                      <span class="label">M1(Right Leg)</span>
+                      <input type="number" name="right_leg_value" id="m1_value" min="-35" max="35" pattern="\d*" />
+                    </div>
+                    <input type="range" name="right_leg_range" id="m1_range" min="-35" max="35" />
+                  </div>
+                  <div>
+                    <div class="motion-input-label">
+                      <span class="label">M7(Left Leg)</span>
+                      <input type="number" name="left_leg_value" id="m7_value" min="-35" max="35" pattern="\d*" />
+                    </div>
+                    <input type="range" name="left_leg_range" id="m7_range" min="-35" max="35" />
+                  </div>
+                </div>
+                <div class="motion-input-row">
+                  <div>
+                    <div class="motion-input-label">
+                      <span class="label">M0(Right Foot)</span>
+                      <input type="number" name="right_foot_value" id="m0_value" min="-25" max="25" pattern="\d*" />
+                    </div>
+                    <input type="range" name="right_foot_range" id="m0_range" min="-25" max="25" />
+                  </div>
+                  <div>
+                    <div class="motion-input-label">
+                      <span class="label">M6(Left Foot)</span>
+                      <input type="number" name="left_foot_value" id="m6_value" min="-25" max="25" pattern="\d*" />
+                    </div>
+                    <input type="range" name="left_foot_range" id="m6_range" min="-25" max="25" />
+                  </div>
+                </div>
+              </div>
+            </section>
+            <section>
+              <div class="motion-record">
+                <div>
+                  <span data-key="play_cycle"></span>
+                  <input type="number" name="play_cycle_val" id="play_cycle_val" min="1" max="100" value="1" pattern="\d*" />
+                  <span> - </span>
+                  <button id="play_frame_bt" class="btn-teal">
+                    <i class="fa-solid fa-play"></i>
+                    <span data-key="execute"></span>
+                  </button>
+                  <button id="stop_frame_bt" class="btn-teal">
+                    <i class="fa-solid fa-stop"></i>
+                    <span data-key="stop"></span>
+                  </button>
+                  <i class="fa-solid fa-ellipsis-vertical"></i>
+                  <button id="init_frame_bt" class="btn-teal">
+                    <i class="fa-solid fa-trash-can"></i>
+                    <span data-key="remove_all"></span>
+                  </button>
+                </div>
+                <div class="motion-table-wrap">
+                  <table id="motor_table">
+                    <thead>
+                      <tr>
+                        <td><span data-key="time"></span></td>
+                        <td>M0</td><td>M1</td><td>M2</td><td>M3</td><td>M4</td>
+                        <td>M5</td><td>M6</td><td>M7</td><td>M8</td><td>M9</td>
+                      </tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+                <div class="motion-name-wrap">
+                  <span data-key="motion_name"></span>
+                  <input type="text" name="motion_name_val" id="motion_name_val" style="width:178px" />
+                  <button id="add_motion_bt" class="btn-red">
+                    <i class="fa-solid fa-check-double"></i>
+                    <span data-key="register"></span>
+                  </button>
+                  <button id="load_motion_bt">
+                    <i class="fa-solid fa-arrow-turn-up"></i>
+                    <span data-key="load"></span>
+                  </button>
+                  <button id="delete_motion_bt">
+                    <i class="fa-solid fa-minus"></i>
+                    <span data-key="remove"></span>
+                  </button>
+                  <i class="fa-solid fa-ellipsis-vertical"></i>
+                  <button id="reset_motion_bt">
+                    <i class="fa-solid fa-trash-can"></i>
+                    <span data-key="remove_all"></span>
+                  </button>
+                  <i class="fa-solid fa-ellipsis-vertical"></i>
+                  <button id="export_motion_bt">
+                    <i class="fas fa-file-export"></i>
+                    <span data-key="export"></span>
+                  </button>
+                  <label for="v_import_motion"><i class="fas fa-file-import"></i>&nbsp;<span data-key="import"></span></label>
+                  <div class="filebox">
+                    <form>
+                      <input type="file" id="v_import_motion" accept=".json" />
+                    </form>
+                  </div>
+                </div>
+                <div class="motion-path">
+                  <input type="text" id="motion-path-disabled" value="~/mymotion.json" disabled />
+                  <textarea name="motor_record" id="motor_record" rows="5" wrap="hard" disabled></textarea>
+                </div>
+                <div style="margin-top:10px">
+                  <h3 class="mark" data-key="example">예제 모션</h3>
+                  <div id="motion_samples" class="motion-sample-grid"></div>
+                </div>
+              </div>
+            </section>
+          </article>
+
+          <article id="article_vision">
+            <section>
+              <div>
+                <div style="float:left">
+                  <h3 class="mark" data-key="camera"></h3>
+                </div>
+                <div style="float:right">
+                  <button id="v_capture">
+                    <i class="fa-solid fa-image"></i>
+                    <span data-key="save_image"></span>
+                  </button>
+                </div>
+              </div>
+              <img id="v_img" />
+              <div>
+                <header><span data-key="camera_position"></span> <i class="fa-solid fa-location-crosshairs">&nbsp;<span id="v_location"></span></i></header>
+                <div style="display: flex; align-items: center; justify-content: center;">
+                  <a id="v_pan_reset"><i class="fa-solid fa-arrows-left-right"></i></a>
+                  <input type="range" name="v_pan_range" id="v_pan_range" min="-50" max="50" style="width:50%;" />
+                  &nbsp;&nbsp;&nbsp;&nbsp;
+                  <a id="v_tilt_reset"><i class="fa-solid fa-arrows-up-down"></i></a>
+                  <input type="range" name="v_tilt_range" id="v_tilt_range" min="-25" max="25" style="width:50%;" />
+                </div>
+              </div>
+            </section>
+            <section>
+              <div>
+                <h3 class="mark" data-key="vision_use">비전 기능</h3>
+              </div>
+              <div>
+                <div class="subsection-label" data-key="function_setting">*기능 선택</div>
+                <div id="vision_quick_grid" class="vision-quick-grid" style="margin-top:8px"></div>
+                <select id="v_func_type" style="display:none">
+                  <option value="camera" data-key="category">카메라</option>
+                  <option value="grayscale" data-key="v_grayscale">흑백</option>
+                  <option value="canny" data-key="v_canny">엣지</option>
+                  <option value="cartoon" data-key="v_cartoon">카툰</option>
+                  <option value="sketch_rgb" data-key="v_sketch_rgb">스케치</option>
+                  <option value="detail" data-key="v_detail">디테일</option>
+                  <option value="edgePreservingFilter" data-key="v_edgePreservingFilter">엣지보존</option>
+                  <option value="qr" data-key="v_qr">QR코드</option>
+                  <option value="face" data-key="v_face">얼굴인식</option>
+                  <option value="face_landmark" data-key="v_face_landmark">얼굴랜드마크</option>
+                  <option value="object" data-key="v_object">객체인식</option>
+                  <option value="hand" data-key="v_hand">손인식</option>
+                  <option value="pose" data-key="v_pose">포즈</option>
+                  <option value="track" data-key="v_track">추적</option>
+                  <option value="marker" data-key="v_marker">마커</option>
+                </select>
+              </div>
+              <div style="margin-top:10px">
+                <div class="subsection-label" data-key="v_marker_length">*마커 길이</div>
+                <div style="margin-top: 6px">
+                  <input type="number" id="marker_length" min="1" max="50" value="5" step="0.1" pattern="\d*" style="width:60px"/> cm
+                </div>
+              </div>
+              <h3 class="mark section-title" data-key="result" style="margin-top:12px">결과</h3>
+              <div id="v_result_cards" class="v-result-cards"></div>
+              <textarea name="v_result" id="v_result" rows="5" wrap="hard" style="width:100%;display:none" disabled></textarea>
+            </section>
+          </article>
+
+          <article id="article_speech">
+            <section>
+              <h3 class="mark section-title" data-key="speak">말하기</h3>
+              <div class="speech-input-group">
+                <span class="label" data-key="voice">음성</span>
+                <input type="radio" name="s_voice_en" value="on" checked />On
+                <input type="radio" name="s_voice_en" value="off" />Off
+              </div>
+              <!-- 음성 유형: 오프라인/온라인 라디오 + 필터 select -->
+              <div class="speech-input-group">
+                <span class="label" data-key="voice_type">음성 유형</span>
+                <div style="display:flex; flex-direction:column; gap:6px">
+                  <div>
+                    <label>
+                      <input type="radio" name="s_voice_mode" value="offline" checked />
+                      <span data-key="offline_voice">오프라인</span>
+                    </label>
+                    &nbsp;
+                    <label>
+                      <input type="radio" name="s_voice_mode" value="online" />
+                      <span data-key="online_voice">온라인</span>
+                    </label>
+                  </div>
+                  <select name="s_voice_type" id="s_voice_type_select"></select>
+                </div>
+              </div>
+              <div class="speech-input-group">
+                <span class="label" data-key="text">텍스트</span>
+                <div class="tts-input-wrap">
+                  <input type="text" id="s_tts_val" maxlength="100" />
+                  <span id="tts_char_count" class="char-count">0 / 100</span>
+                </div>
+                <button id="s_tts_bt" class="btn-speech">
+                  <i class="fa-solid fa-play"></i>
+                  <span data-key="execute">실행</span>
+                </button>
+              </div>
+
+              <h3 class="mark section-title" data-key="translate" style="margin-top:14px">번역하기</h3>
+              <div class="speech-input-group">
+                <span class="label" data-key="language_type">언어</span>
+                <select name="s_lang_type">
+                  <option value="en" data-key="s_lang_en"></option>
+                  <option value="ko" data-key="s_lang_ko"></option>
+                  <option value="es" data-key="s_lang_es"></option>
+                  <option value="fr" data-key="s_lang_fr"></option>
+                  <option value="de" data-key="s_lang_de"></option>
+                  <option value="zh-CN" data-key="s_lang_zhcn"></option>
+                  <option value="ja" data-key="s_lang_ja"></option>
+                  <option value="ru" data-key="s_lang_ru"></option>
+                  <option value="ar" data-key="s_lang_ar"></option>
+                  <option value="hi" data-key="s_lang_hi"></option>
+                  <option value="la" data-key="s_lang_la"></option>
+                </select>
+              </div>
+              <div class="speech-input-group">
+                <span class="label" data-key="text">텍스트</span>
+                <input type="text" id="s_translate_val" />
+                <button id="s_translate_bt" class="btn-speech">
+                  <i class="fa-solid fa-language"></i>
+                  <span data-key="execute">실행</span>
+                </button>
+              </div>
+              <div class="speech-input-group">
+                <span class="label" data-key="result">결과</span>
+                <input type="text" id="s_translate_result_val" disabled/>
+              </div>
+            </section>
+            <section>
+              <h3 class="mark section-title" data-key="talk">대화하기</h3>
+              <div class="speech-input-group">
+                <span class="label" data-key="conversation_dataset">데이터셋</span>
+                <label for="s_upload_csv" id="lbl_upload_csv"><i class="fa-solid fa-file-upload">&nbsp;</i><span data-key="upload">업로드</span></label>
+                <div class="filebox">
+                  <form><input type="file" id="s_upload_csv" accept=".csv" /></form>
+                </div>
+                <button id="s_reset_csv_bt">
+                  <i class="fa-solid fa-eraser"></i>
+                  <span data-key="reset">초기화</span>
+                </button>
+              </div>
+              <div class="speech-input-group">
+                <span class="label" data-key="question">질문</span>
+                <input type="text" name="s_question_val" id="s_question_val" />
+                <button id="s_chat_bt" class="btn-speech">
+                  <i class="fa-solid fa-comment-dots"></i>
+                  <span data-key="execute">실행</span>
+                </button>
+              </div>
+              <div class="speech-input-group">
+                <span class="label" data-key="answer">답변</span>
+                <input type="text" name="s_answer_val" id="s_answer_val" disabled />
+              </div>
+              <h3 class="mark" data-key="conversation_record" style="margin-top:12px">대화 기록</h3>
+              <div class="speech-table-wrap">
+                <table id="s_record_tb">
+                  <thead>
+                    <tr>
+                      <td style="width: 100px"><b><span data-key="time">시간</span></b></td>
+                      <td><b><span data-key="question">질문</span></b></td>
+                      <td><b><span data-key="answer">답변</span></b></td>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </section>
+          </article>
+
+          <!-- Simulator -->
+          <article id="article_simulator">
+            <div class="vertical">
+              <section class="new-and-list">
+                <h5 id="sequence_warn" class="warning no-sequence">
+                  <i class="fa-solid fa-warning"></i>
+                  <span data-key="sequence_warn"></span>
+                </h5>
+                <div id="sequence_title" class="horizontal space-between">
+                  <button id="sequence_title_unfold_bt">
+                    <i class="fa-solid fa-angle-down right-gap"></i>
+                    <span data-key="unfold"></span>
+                  </button>
+                  <button id="sequence_title_fold_bt">
+                    <i class="fa-solid fa-angle-up right-gap"></i>
+                    <span data-key="fold"></span>
+                  </button>
+                  <h3 name="sequence_title" class="mark">undefined</h3>
+                  <button id="sequence_save_bt" class="btn-teal">
+                    <i class="fa-solid fa-check right-gap"></i>
+                    <span data-key="save"></span>
+                  </button>
+                </div>
+                <div id="sequence_contents" class="horizontal space-between">
+                  <div class="vertical" style="gap: 0.5em">
+                    <div class="horizontal space-between">
+                      <h3 class="mark" data-key="new_sequence_create"></h3>
+                      <button id="add_sequence_bt" class="btn-teal">
+                        <i class="fa-solid fa-plus"></i>
+                        <span data-key="add"></span>
+                      </button>
+                    </div>
+                    <div class="card outline" style="gap: 0.25em">
+                      <div class="input-wrap">
+                        <span class="label small" data-key="name"></span>
+                        <input type="text" class="fullWidth" name="sequence_name_val" id="sequence_name_val" maxlength="30" minlength="1" />
+                      </div>
+                      <span class="label small guide" data-key="label_small_guide"></span>
+                    </div>
+                  </div>
+                  <div class="vertical" style="gap: 0.5em">
+                    <div class="horizontal space-between">
+                      <h3 class="mark" data-key="saved_sequence_list"></h3>
+                      <button id="remove_all_sequence_bt" class="btn-red">
+                        <i class="fa-solid fa-trash-can"></i>
+                        <span data-key="remove_all"></span>
+                      </button>
+                    </div>
+                    <div class="card outline">
+                      <div id="no_sequence_warn" class="no-sequence">
+                        <span data-key="no_sequence"></span>
+                      </div>
+                      <ul id="sequence_list" class="style-none fullWidth"></ul>
+                    </div>
+                  </div>
+                </div>
+              </section>
+              <section class="config">
+                <h3 class="mark" data-key="sequence_contents_time"></h3>
+                <div id="config_contents">
+                  <div class="time-wrap">
+                    <div class="horizontal space-between fullWidth" style="align-items: center">
+                      <header>
+                        <i class="fa-solid fa-clock" style="margin-right: 0.5em"></i>
+                        <span data-key="time"></span>
+                      </header>
+                      <div class="time-input-wrapper horizontal">
+                        <input type="number" id="config_time_input" class="number" value="0" step="0.1" />
+                        <span data-key="execute_from_time"></span>
+                        <button class="btn-teal" id="config_time_bt">
+                          <i class="fa-solid fa-add"></i>
+                          <span data-key="add"></span>
+                        </button>
+                      </div>
+                    </div>
+                    <div id="eye_color_card" class="config card outline">
+                      <div class="horizontal space-between">
+                        <button id="eye_init_bt"><i class="fa-solid fa-x"></i></button>
+                        <header style="display: flex; align-items: center">
+                          <i class="icon-eye-color"></i>
+                          <span data-key="eye_color"></span>
+                        </header>
+                        <button class="play" id="eye_play_bt"><i class="fa-solid fa-play"></i></button>
+                      </div>
+                      <div class="card-contents">
+                        <div class="horizontal vertical-align">
+                          <span class="label small" data-key="type"></span>
+                          <div id="eye_radio_group" class="radio-group fullWidth"></div>
+                        </div>
+                        <div class="horizontal space-between">
+                          <span class="label small"></span>
+                          <div id="eye_color_group_r" class="color-swatch-group fullWidth">
+                            <span class="label small" data-key="right"></span>
+                            <div class="color swatch"></div>
+                            <div id="color_input_r" class="color-input-wrap">
+                              <input type="tel" name="color_red_r" readonly />
+                              <input type="tel" name="color_green_r" readonly />
+                              <input type="tel" name="color_blue_r" readonly />
+                            </div>
+                          </div>
+                          <div id="eye_color_group_l" class="color-swatch-group fullWidth">
+                            <span class="label small" data-key="left"></span>
+                            <div class="color swatch"></div>
+                            <div id="color_input_l" class="color-input-wrap">
+                              <input type="tel" name="color_red_l" readonly />
+                              <input type="tel" name="color_green_l" readonly />
+                              <input type="tel" name="color_blue_l" readonly />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div id="oled_card" class="config card outline">
+                      <div class="horizontal space-between">
+                        <button id="oled_init_bt"><i class="fa-solid fa-x"></i></button>
+                        <header style="display: flex; align-items: center">
+                          <i class="icon-oled"></i>
+                          <span data-key="oled"></span>
+                        </header>
+                        <button class="play" id="oled_play_bt"><i class="fa-solid fa-play"></i></button>
+                      </div>
+                      <div class="card-contents">
+                        <div class="horizontal vertical-align">
+                          <span class="label small" data-key="type"></span>
+                          <div id="oled_radio_group" class="radio-group fullWidth"></div>
+                        </div>
+                        <div id="oled_text_group">
+                          <div class="horizontal vertical-align" id="oled_text_content">
+                            <span class="label small" data-key="content"></span>
+                            <textarea rows="3" class="fullWidth" id="oled_textarea" name="oled_textarea" maxlength="140"></textarea>
+                          </div>
+                          <div class="horizontal vertical-align" id="oled_text_config">
+                            <div class="horizontal space-between vertical-align" style="flex-wrap: wrap">
+                              <div class="horizontal vertical-align">
+                                <span class="label small" data-key="position"></span>
+                                <div>
+                                  <span class="label small">X</span>
+                                  <input type="number" class="number" id="oled_x" name="oled_x" min="0" max="128" />
+                                  <span class="label small">Y</span>
+                                  <input type="number" class="number" id="oled_y" name="oled_y" min="0" max="64" />
+                                </div>
+                              </div>
+                              <div class="horizontal vertical-align">
+                                <span class="label small" data-key="size"></span>
+                                <input type="number" class="number" id="oled_size" name="oled_size" min="1" max="50" pattern="\d*" />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <div id="oled_img_group">
+                          <div class="horizontal vertical-align">
+                            <span class="label small" data-key="type"></span>
+                            <select id="oled_path_select" class="fullWidth"></select>
+                          </div>
+                          <div class="horizontal vertical-align">
+                            <span class="label small" data-key="file"></span>
+                            <select id="oled_img_select" class="fullWidth"></select>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div id="motion_card" class="config card outline">
+                      <div class="horizontal space-between">
+                        <button id="motion_init_bt"><i class="fa-solid fa-x"></i></button>
+                        <header style="display: flex; align-items: center">
+                          <i class="icon-motion"></i>
+                          <span data-key="motion"></span>
+                        </header>
+                        <button class="play" id="motion_play_bt"><i class="fa-solid fa-play"></i></button>
+                      </div>
+                      <div class="card-contents">
+                        <div class="horizontal vertical-align">
+                          <span class="label small" data-key="type"></span>
+                          <div id="motion_radio_group" class="radio-group fullWidth"></div>
+                        </div>
+                        <div class="horizontal vertical-align">
+                          <span class="label small" data-key="name"></span>
+                          <select class="fullWidth" name="motion_select" id="motion_select" required></select>
+                        </div>
+                        <div class="horizontal vertical-align">
+                          <span class="label small" data-key="repeat"></span>
+                          <input type="number" name="motion_cycle_input" id="motion_cycle_input" class="number" />
+                        </div>
+                      </div>
+                    </div>
+                    <div id="audio_card" class="config card outline">
+                      <div class="horizontal space-between">
+                        <button id="audio_init_bt"><i class="fa-solid fa-x"></i></button>
+                        <header style="display: flex; align-items: center">
+                          <i class="icon-audio"></i>
+                          <span data-key="audio"></span>
+                        </header>
+                        <button class="play" id="audio_play_bt"><i class="fa-solid fa-play"></i></button>
+                      </div>
+                      <div class="card-contents">
+                        <div class="horizontal vertical-align">
+                          <span class="label small" data-key="type"></span>
+                          <div id="audio_radio_group" class="radio-group stack fullWidth"></div>
+                        </div>
+                        <div class="horizontal vertical-align">
+                          <span class="label small" data-key="file"></span>
+                          <select class="fullWidth" name="audio_select" id="audio_select" required></select>
+                        </div>
+                      </div>
+                    </div>
+                    <!-- TTS 카드: 오프라인/온라인 라디오 + 필터 select -->
+                    <div id="tts_card" class="config card outline">
+                      <div class="horizontal space-between">
+                        <button id="tts_init_bt"><i class="fa-solid fa-x"></i></button>
+                        <header style="display: flex; align-items: center">
+                          <i class="icon-tts"></i>
+                          <span data-key="voice"></span>
+                        </header>
+                        <button class="play" id="tts_play_bt"><i class="fa-solid fa-play"></i></button>
+                      </div>
+                      <div class="card-contents">
+                        <div class="horizontal vertical-align">
+                          <span class="label small" data-key="type"></span>
+                          <div id="tts_voice_mode_group" class="radio-group fullWidth"></div>
+                        </div>
+                        <div class="horizontal vertical-align">
+                          <span class="label small" data-key="voice"></span>
+                          <select class="fullWidth" name="tts_select" id="tts_select" required></select>
+                        </div>
+                        <div class="horizontal vertical-align">
+                          <span class="label small" data-key="content"></span>
+                          <textarea rows="3" class="fullWidth" id="tts_textarea" name="tts_textarea" maxlength="48"></textarea>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="config card outline" style="opacity: 0"></div>
+                  </div>
+                </div>
+              </section>
+            </div>
+            <section class="timeline">
+              <div class="horizontal space-between" style="flex: 0 0">
+                <h3 class="mark" data-key="sequence_timeline"></h3>
+                <div class="horizontal gap-8" style="flex-grow: 0">
+                  <button class="btn-teal" id="timeline_play_bt">
+                    <i class="fa-solid fa-play"></i>
+                    <span data-key="execute"></span>
+                  </button>
+                  <button class="btn-teal" id="timeline_stop_bt">
+                    <i class="fa-solid fa-stop"></i>
+                    <span data-key="stop"></span>
+                  </button>
+                </div>
+              </div>
+              <div id="timeline_card" class="timeline card">
+                <div class="timeline row head">
+                  <div class="cell head"><input type="checkbox" id="timeline_all_check" /></div>
+                  <div class="cell head"><i class="fa-solid fa-clock"></i></div>
+                  <div class="cell head"><i class="icon-eye-color"></i></div>
+                  <div class="cell head"><i class="icon-oled"></i></div>
+                  <div class="cell head"><i class="icon-motion"></i></div>
+                  <div class="cell head"><i class="icon-audio"></i></div>
+                  <div class="cell head"><i class="icon-tts"></i></div>
+                </div>
+                <div id="timeline_body" class="timeline body"></div>
+              </div>
+              <div id="timeline_bottom_wrap" class="horizontal" style="justify-content: flex-end">
+                <button class="btn-red" id="timeline_del_bt">
+                  <i class="fa-solid fa-trash-can"></i>
+                  <span data-key="remove"></span>
+                </button>
+              </div>
+            </section>
+          </article>
+        </div>
+      </div>
+    </main>
+  </body>
+  <script src="../static/ko2en.js?ver=240325v4"></script>
+  <script src="../static/index.js?ver=260325v4"></script>
+  <script src="../static/tools_extra.js?ver=260325v4"></script>
+</html>

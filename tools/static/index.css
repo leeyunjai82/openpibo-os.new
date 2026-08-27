@@ -1,0 +1,983 @@
+/* ============================================================
+   Tools index.css — IDE 컨셉 통일 + UX 개선
+   ============================================================ */
+
+@font-face {
+  font-family: "Malgun Gothic";
+  font-style: normal;
+  src: local("Malgun Gothic"), local("Dotum"), local("Gulim");
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+/* ── CSS Variables ─────────────────────────────────────────── */
+:root {
+  --mid-gray:     #6c6c6c;
+  --yellow:       #f4de3d;
+  --dark-yellow:  #f4d85a;
+  --light-green:  #edf5e0;
+  --light-yellow: rgb(248, 242, 172);
+  --teal:         rgb(18, 189, 212);
+  --dark-teal:    #11abbf;
+  --red:          #f16449;
+  --dark-red:     #d85a41;
+
+  /* simulator colors — 원본 유지 */
+  --eye-color:      rgb(240, 103, 79);
+  --eye-color-fill: rgba(240, 103, 79, 0.35);
+  --oled:           rgb(255, 200, 61);
+  --oled-fill:      rgba(255, 200, 61, 0.35);
+  --motion:         rgb(64, 197, 175);
+  --motion-fill:    rgba(64, 197, 175, 0.35);
+  --audio:          rgb(64, 154, 225);
+  --audio-fill:     rgba(64, 154, 225, 0.35);
+  --tts:            rgb(180, 160, 255);
+  --tts-fill:       rgba(180, 160, 255, 0.35);
+
+  --font-ko: "Noto Sans KR", "Noto Sans CJK KR", "맑은 고딕", "malgun gothic",
+    "Apple SD Gothic Neo", "Droid Sans", sans-serif;
+
+  --nav-w:    72px;
+  --header-h: 3.1rem;
+  --border:   1px solid rgba(0,0,0,0.09);
+}
+
+/* ── Base ──────────────────────────────────────────────────── */
+html {
+  font-size: 10px; /* 1rem = 10px */
+}
+
+body {
+  touch-action: pan-x pan-y;
+  height: 100%;
+  font-family: var(--font-ko);
+  color: #1a1a1a;
+  background: #f4f4f0;
+  box-sizing: border-box;
+  font-size: 1.6rem; /* = 16px */
+  position: relative;
+  word-break: keep-all;
+  display: flex;
+  flex-direction: column;
+  margin: 0 auto;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+header, h1, h2, h3, h4, h5, h6 { font-family: var(--font-ko); }
+
+textarea, select, input {
+  color: #1a1a1a;
+  font-weight: normal;
+  outline: none;
+  font-family: var(--font-ko);
+}
+
+textarea, select, input {
+  background: rgba(248, 242, 172, 0.85);
+  border: 1px solid rgba(0,0,0,0.4);
+  border-radius: 12px;
+  padding: 4px 8px;
+  font-size: 14px !important;
+}
+
+a:link, a:visited { color: #0896d9; text-decoration: none; }
+a:hover, a:focus  { color: #0896d9; cursor: pointer; }
+
+/* ── Scrollbars ────────────────────────────────────────────── */
+::-webkit-scrollbar         { width: 5px; height: 5px; }
+::-webkit-scrollbar-track   { background: rgba(0,0,0,0.08); border-radius: 3px; margin: 2px; }
+::-webkit-scrollbar-thumb   { background: rgba(0,0,0,0.2); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.35); }
+
+/* ── Header ────────────────────────────────────────────────── */
+header.title {
+  color: #111;
+  background: var(--dark-yellow);
+  cursor: default;
+  width: 100%;
+  height: var(--header-h);
+  padding-left: 16px;
+  padding-right: 16px;
+  position: fixed;
+  z-index: 99;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.title h2 {
+  margin: 0;
+  font-family: Tahoma, sans-serif;
+  font-size: 1.9rem;
+  font-weight: 700;
+  padding: 0.3rem;
+}
+
+header > div > h2 > select {
+  height: 22px;
+  background: var(--light-yellow);
+  border: 1px solid rgba(0,0,0,0.25);
+  border-radius: 10px;
+  padding: 0 6px;
+  font-size: 11px !important;
+}
+
+#lang-toggle:active {
+  transform: translateY(2px);
+}
+
+/* ── Nav (Left Sidebar) ────────────────────────────────────── */
+nav {
+  width: var(--nav-w);
+  left: 0;
+  top: var(--header-h);
+  height: calc(100% - var(--header-h));
+  background: #fff;
+  border-right: var(--border);
+  position: fixed;
+  z-index: 98;
+  box-shadow: 2px 0 6px rgba(0,0,0,0.06);
+  overflow: hidden;
+}
+
+nav ul {
+  padding: 8px 0;
+  margin: 0;
+  list-style: none;
+}
+
+nav li { text-align: center; }
+
+nav button {
+  width: var(--nav-w);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  font-family: var(--font-ko);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 12px 4px;
+  opacity: 0.35;
+  cursor: pointer;
+  transition: opacity 0.15s, background 0.15s;
+  color: #111;
+  position: relative;
+}
+
+nav button::before {
+  /* 선택 인디케이터 */
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: var(--teal);
+  border-radius: 0 3px 3px 0;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+nav button:hover  { opacity: 0.65; background: rgba(0,0,0,0.04); }
+nav button:active { transform: none; box-shadow: none; }
+
+nav button.menu-selected {
+  opacity: 1;
+  background: rgba(18,189,212,0.07);
+}
+nav button.menu-selected::before { opacity: 1; }
+
+/* 아이콘 — 기존 ::after url() 방식 유지하되 크기 조정 */
+nav button[name="home"]::after      { content: url("home.png"); display: block; }
+nav button[name="device"]::after    { content: url("tool.png"); display: block; }
+nav button[name="motion"]::after    { content: url("man-celebrating.png"); display: block; }
+nav button[name="vision"]::after    { content: url("camera.png"); display: block; }
+nav button[name="speech"]::after    { content: url("speech.png"); display: block; }
+nav button[name="simulator"]::after { content: url("simulator.png"); display: block; }
+
+.nav-icon { display: none; } /* ::after가 아이콘 담당 */
+
+.nav-label {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  color: #444;
+  line-height: 1;
+  -webkit-font-smoothing: antialiased;
+}
+nav button.menu-selected .nav-label { color: var(--dark-teal); }
+
+/* ── Main / Content ────────────────────────────────────────── */
+main {
+  display: flex;
+  flex: 1 0 80vh;
+  padding-top: calc(var(--header-h) + 15px);
+  padding-bottom: 20px;
+}
+
+main > div.content {
+  display: flex;
+  flex-flow: row;
+  width: 100%;
+  margin: 0 auto;
+  align-items: flex-start;
+  padding-left: calc(var(--nav-w) + 16px);
+  padding-right: 16px;
+}
+
+main div.wrapper { width: 100%; }
+
+/* ── Section ───────────────────────────────────────────────── */
+article {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+article.margin { margin-bottom: 20px; }
+
+section {
+  padding: 14px 16px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  word-wrap: break-word;
+  background: #fff;
+  background-clip: border-box;
+  overflow: hidden;
+  min-height: 300px;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.1);
+  border-radius: 8px;
+  border: var(--border);
+}
+
+/* 섹션 h3.mark 통일 */
+h3.mark {
+  display: inline-block;
+  width: fit-content;
+  font-size: 13px;
+  font-weight: 700;
+  color: #333;
+  background: linear-gradient(to right, var(--light-yellow) 0%, var(--dark-yellow) 100%);
+  padding: 3px 10px 3px 6px;
+  border-radius: 4px;
+  margin: 0 0 12px;
+  letter-spacing: 0.01em;
+  /* clear:both 제거 — flex 컨테이너 안에서 줄바꿈 유발함 */
+}
+
+/* section-header: h3 + 버튼 나란히 */
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.section-header h3.mark { margin-bottom: 0; }
+
+/* 소제목 */
+.subsection-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #666;
+  margin-bottom: 4px;
+}
+
+/* 도구 행 */
+.tool-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* ── section-inline-header (h3 + 소제목 한 줄) ──────────── */
+.section-inline-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.section-inline-header h3.mark { margin-bottom: 0; }
+.section-inline-header .subsection-label { margin-bottom: 0; }
+
+/* ── section-title — 소제목과 구별되는 섹션 제목 ──────────── */
+h3.mark.section-title {
+  font-size: 14px;
+  padding: 4px 12px 4px 8px;
+  font-weight: 800;
+}
+
+/* ── Speech 실행 버튼 크기 통일 ─────────────────────────── */
+button.btn-speech {
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-width: 80px;
+}
+
+/* ── 업로드 영역 — native drag (input type=file 오버레이) ── */
+.upload-area {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 14px;
+  border: 2px dashed #ccc;
+  border-radius: 12px;
+  background: #fafaf8;
+  transition: border-color 0.15s, background 0.15s;
+  cursor: pointer;
+  min-width: 260px;
+}
+.upload-area:hover,
+.upload-area:has(input:focus) {
+  border-color: #aaa;
+}
+/* file input이 upload-area 전체를 덮어 클릭+드래그 모두 처리 */
+.upload-area input[type="file"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  font-size: 0;
+}
+.upload-area-btn {
+  font-family: var(--font-ko);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 5px 12px;
+  background: var(--yellow);
+  border-radius: 12px;
+  box-shadow: 0 3px var(--mid-gray);
+  pointer-events: none; /* input이 위에 있으므로 클릭 이벤트 input에 위임 */
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.upload-area-hint {
+  font-size: 11px;
+  color: #bbb;
+  pointer-events: none;
+}
+/* 드래그 오버 시 스타일 — JS로 클래스 추가 */
+.upload-area.dragover {
+  border-color: var(--teal);
+  background: rgba(18,189,212,0.05);
+}
+.upload-area.dragover .upload-area-hint {
+  color: var(--dark-teal);
+  font-weight: 600;
+}
+
+/* ── Vision 결과 카드 ────────────────────────────────────── */
+.v-result-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 40px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+.v-result-card {
+  padding: 5px 10px;
+  background: #f8f8f6;
+  border-radius: 6px;
+  border-left: 3px solid var(--teal);
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  color: #333;
+  word-break: break-all;
+}
+.v-result-empty {
+  color: #bbb;
+  font-size: 12px;
+  padding: 6px 0;
+}
+
+
+/* ── Eye color picker ────────────────────────────────────── */
+.eye-color-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.eye-color-picker {
+  width: 36px !important;
+  height: 28px !important;
+  border: 2px solid #ddd !important;
+  border-radius: 6px !important;
+  padding: 2px !important;
+  background: #fff !important;
+  cursor: pointer;
+}
+.eye-color-picker:hover { border-color: var(--teal) !important; }
+
+/* ── Audio status bar ────────────────────────────────────── */
+.audio-status-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: rgba(18,189,212,0.08);
+  border-radius: 8px;
+  margin-top: 8px;
+  font-size: 12px;
+}
+.audio-status-name {
+  font-weight: 600; color: #333;
+  flex: 1; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap;
+}
+.audio-progress-track {
+  width: 80px; height: 4px;
+  background: #ddd; border-radius: 4px;
+  overflow: hidden; flex-shrink: 0;
+}
+.audio-progress-fill {
+  height: 100%;
+  background: var(--teal);
+  border-radius: 4px;
+  width: 0%;
+  animation: audio-pg 2s linear infinite;
+}
+@keyframes audio-pg { from { width: 0%; } to { width: 100%; } }
+
+/* ── Inline audio player ─────────────────────────────────── */
+.inline-player { margin-top: 8px; }
+.inline-player audio {
+  width: 100%; height: 36px;
+  border-radius: 8px; border: none;
+}
+
+/* ── Mic timer ───────────────────────────────────────────── */
+.mic-timer {
+  font-size: 13px; font-weight: 700;
+  color: var(--red);
+  font-family: 'Courier New', monospace;
+  min-width: 28px;
+}
+
+/* ── Sensor row ──────────────────────────────────────────── */
+.sensor-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 10px;
+  background: #f8f8f6; border-radius: 8px;
+  margin-top: 6px; font-size: 13px;
+}
+.sensor-val {
+  font-weight: 700; color: var(--dark-teal);
+  font-family: 'Courier New', monospace;
+  font-size: 13px; margin-left: auto;
+  background: rgba(18,189,212,0.1);
+  padding: 1px 8px; border-radius: 6px;
+}
+
+/* ── Motion sample grid ──────────────────────────────────── */
+.motion-sample-grid {
+  display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px;
+}
+.motion-sample-btn {
+  font-family: var(--font-ko) !important;
+  font-size: 11px !important; font-weight: 600 !important;
+  padding: 4px 9px !important; border-radius: 8px !important;
+  background: var(--light-green) !important;
+  border: 1px solid #c8e6c9 !important;
+  box-shadow: none !important; cursor: pointer; color: #2e7d32;
+  transition: background 0.12s;
+}
+.motion-sample-btn:hover  { background: #c8e6c9 !important; font-weight: 700 !important; }
+.motion-sample-btn:active { transform: scale(0.95) !important; }
+.motion-sample-btn.running {
+  background: var(--teal) !important;
+  color: #fff; border-color: var(--dark-teal) !important;
+}
+
+/* ── Vision quick grid ───────────────────────────────────── */
+.vision-quick-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.vision-group-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.vision-group-sep {
+  height: 1px;
+  background: #e8e8e8;
+  margin: 2px 0;
+}
+.vision-quick-btn {
+  font-family: var(--font-ko) !important;
+  font-size: 11px !important; font-weight: 600 !important;
+  padding: 5px 10px !important; border-radius: 8px !important;
+  background: #f0f0f0 !important;
+  border: 1.5px solid #ddd !important;
+  box-shadow: none !important; cursor: pointer; color: #444;
+  transition: background 0.12s;
+}
+.vision-quick-btn:hover  { background: #e0e0e0 !important; }
+.vision-quick-btn.active {
+  background: var(--teal) !important;
+  border-color: var(--dark-teal) !important;
+  color: #fff; font-weight: 700 !important;
+}
+
+/* ── Speech: TTS char counter ────────────────────────────── */
+.tts-input-wrap { position: relative; flex: 1; min-width: 0; }
+.tts-input-wrap input { width: 100%; padding-right: 62px !important; }
+.char-count {
+  position: absolute; right: 8px; top: 50%;
+  transform: translateY(-50%);
+  font-size: 10px; color: #aaa; font-weight: 600;
+  pointer-events: none; white-space: nowrap;
+}
+.char-count.warn { color: var(--red); }
+
+/* ── Buttons ───────────────────────────────────────────────── */
+button, input[type="submit"] {
+  font-family: var(--font-ko);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 5px 12px;
+  outline: none;
+  background: var(--yellow);
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0 3px var(--mid-gray);
+  cursor: pointer;
+  white-space: nowrap;
+  -webkit-font-smoothing: antialiased;
+}
+
+div.content button:hover, input[type="submit"]:hover {
+  font-weight: 700;
+  background: var(--dark-yellow);
+}
+div.content button:active, input[type="submit"]:active {
+  background: var(--dark-yellow);
+  box-shadow: 0 1px var(--mid-gray);
+  transform: translateY(2px);
+}
+
+button.btn-teal {
+  background: var(--teal);
+  box-shadow: 0 3px #074c55;
+}
+button.btn-teal:hover  { background: var(--dark-teal) !important; }
+button.btn-teal:active { background: var(--dark-teal); box-shadow: 0 1px #074c55; }
+
+button.btn-red {
+  color: #fff;
+  background: var(--red);
+  box-shadow: 0 3px #903c2b;
+}
+button.btn-red:hover  { background: var(--dark-red) !important; }
+button.btn-red:active { background: var(--dark-red); box-shadow: 0 1px #903c2b; }
+
+button.disabled, input[type="text"]:disabled,
+input[type="password"]:disabled, textarea.disabled {
+  opacity: 0.5;
+  filter: grayscale(0.5);
+}
+
+/* upload labels — 기존 스타일 유지 */
+label[for=v_import_motion],
+label[for=upload_audio],
+label[for=upload_image],
+label[for=s_upload_csv] {
+  font-family: var(--font-ko);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 5px 12px;
+  outline: none;
+  background: var(--yellow);
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0 3px var(--mid-gray);
+  cursor: pointer;
+  -webkit-font-smoothing: antialiased;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+label[for=v_import_motion]:hover,
+label[for=upload_audio]:hover,
+label[for=upload_image]:hover,
+label[for=s_upload_csv]:hover { background: var(--dark-yellow); font-weight: 700; }
+label[for=v_import_motion]:active,
+label[for=upload_audio]:active,
+label[for=upload_image]:active,
+label[for=s_upload_csv]:active {
+  background: var(--dark-yellow);
+  box-shadow: 0 1px var(--mid-gray);
+  position: relative; top: 2px;
+}
+
+.filebox input[type="file"] {
+  width: 0; height: 0; padding: 0;
+  overflow: hidden; margin: -1px;
+  border: 0; position: absolute;
+}
+
+/* ── Labels ────────────────────────────────────────────────── */
+p.label, span.label, label.label {
+  font-size: 13px;
+  font-weight: 700;
+  -webkit-font-smoothing: antialiased;
+}
+
+i.fa > span {
+  font-family: var(--font-ko);
+  font-weight: 600;
+  padding-left: 0.25em;
+}
+
+/* ── Toggle ────────────────────────────────────────────────── */
+.toggle { font-size: 1.4rem; cursor: pointer; display: inline-block; }
+.toggle-switch {
+  display: inline-block;
+  background: #ccc;
+  border-radius: 15px;
+  width: 40px; height: 24px;
+  position: relative;
+  vertical-align: middle;
+  transition: background 0.25s;
+}
+.toggle-checkbox:checked + .toggle-switch { background: var(--yellow); }
+.toggle-checkbox:checked + .toggle-switch:before { left: 20px; }
+.toggle-switch:before {
+  content: "";
+  display: block;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.25);
+  width: 16px; height: 16px;
+  position: absolute;
+  top: 4px; left: 4px;
+  transition: left 0.25s;
+}
+.toggle-checkbox { position: absolute; visibility: hidden; }
+
+/* ── Device: Eye Color ─────────────────────────────────────── */
+.eye-preview-wrap {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: center;
+  margin: 10px auto 14px;
+  padding: 10px 14px;
+  background: #1a1a2e;
+  border-radius: 10px;
+  width: 100%;
+}
+
+.eye-preview-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+
+.eye-preview-circle {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgb(0,0,0);
+  border: 3px solid rgba(255,255,255,0.15);
+  box-shadow: 0 0 12px rgba(0,0,0,0.5);
+  transition: background 0.2s;
+}
+
+.eye-preview-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.6);
+}
+
+.eye-rgb-text {
+  font-size: 10px;
+  color: rgba(255,255,255,0.4);
+  font-family: 'Courier New', monospace;
+}
+
+.eye-color-group {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 20px;
+  width: 100%;
+  text-align: center;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.eye-color-input-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.eye-color-input-group > div { display: flex; gap: 8px; justify-content: center; }
+.eye-color-input-group > div > div { display: flex; flex-flow: column; align-items: center; }
+.eye-color-input-group span.label { text-align: center; width: 100%; display: inline-block; font-size: 14px; }
+.eye-color-input-group label.label { text-align: center; margin-top: 8px; margin-bottom: 4px; }
+.eye-color-input-group input[type="number"] { max-width: 60px; text-align: center; }
+
+/* ── Device: Status ────────────────────────────────────────── */
+.device-status-group { display: flex; flex-flow: column; gap: 8px; }
+
+/* Mic status badge */
+#mic_status {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--dark-teal);
+}
+
+/* ── Vision: Mode badge ────────────────────────────────────── */
+.mode-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--teal);
+  color: #fff;
+  border-radius: 20px;
+  padding: 2px 10px;
+  margin-left: 8px;
+  vertical-align: middle;
+  -webkit-font-smoothing: antialiased;
+}
+.mode-badge:empty { display: none; }
+
+/* ── OLED ──────────────────────────────────────────────────── */
+.oled-group > input { width: 54px; }
+.oled-group > div > input { width: 70%; margin-top: 2px; }
+.oled-group > div > input[type="number"] { width: auto; min-width: 60px; }
+
+/* ── Motion ────────────────────────────────────────────────── */
+.pibo-section { position: relative; min-width: 590px; overflow-x: auto; }
+.pibo-section > img { width: 530px; height: auto; filter: opacity(0.55); margin: 0 auto; display: block; }
+
+.motion-input-group {
+  margin-top: 68px;
+  width: 530px; height: 530px;
+  position: absolute;
+  display: flex; flex-flow: column; align-items: center;
+  left: calc(calc(100% - 530px) / 2);
+}
+.motion-input-group > div { width: calc(530px / 4); }
+.motion-input-row { display: flex; flex-flow: row; justify-content: center; gap: 8px; }
+.motion-input-label { display: flex; flex-flow: row; align-items: center; }
+.motion-input-label input { width: 62px; }
+.motion-input-label span { font-size: 12px; width: 100%; }
+.motion-input-row:nth-child(2) { margin-top: 120px; margin-bottom: 30px; }
+.motion-input-row:nth-child(3) { column-gap: 70px; }
+.motion-input-row:nth-child(4) { margin-top: 55px; column-gap: 270px; }
+.motion-input-row:nth-child(5) { margin-top: 20px; column-gap: 32px; }
+.motion-input-row:nth-child(6) { margin-top: 110px; column-gap: 30px; }
+
+#init_bt { position: absolute; }
+
+.motion-table-wrap {
+  height: 420px;
+  overflow-y: auto;
+  margin: 0.5em 0;
+  border: var(--border);
+  border-radius: 6px;
+}
+
+.motion-record { display: flex; flex-flow: column; }
+.motion-name-wrap { margin-bottom: 0.5em; }
+.motion-name-wrap input { width: 195px; }
+.motion-name-wrap button { font-size: 12px; }
+
+.motion-path input { border-bottom: none; background: rgba(240,240,240,0.8); width: 100%; }
+.motion-path textarea { width: 100%; max-height: 180px; resize: none; }
+
+#motor_table {
+  width: 100%;
+  text-align: center;
+  border-spacing: 1px;
+}
+#motor_table thead td:nth-child(n+2) { background: var(--light-green); width: fit-content; }
+#motor_table tbody td:first-child    { background: var(--light-yellow); width: 100px; }
+#motor_table tbody td:nth-child(n+2) { background: white; height: 20px; }
+
+thead { background: var(--yellow); text-align: center; }
+tbody { background: var(--light-yellow); }
+
+/* ── Speech ────────────────────────────────────────────────── */
+.speech-input-group {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+.speech-input-group input[type="text"] { width: 100%; }
+
+.speech-table-wrap {
+  max-height: 280px;
+  overflow-y: auto;
+  border: var(--border);
+  border-radius: 6px;
+}
+
+#s_record_tb { width: 100%; text-align: center; border-spacing: 1px; }
+#s_record_tb thead td:nth-child(n+2) { width: 100px; }
+#s_record_tb tbody td:first-child     { min-width: 100px; }
+#s_record_tb tbody td:nth-child(n+2) { background: white; }
+
+/* ── Vision ────────────────────────────────────────────────── */
+#article_vision img { max-height: 420px; max-width: 560px; width: 100%; }
+#article_vision > section > div { margin: 1em 0; }
+
+/* ── Popups (IDE와 동일) ─────────────────────────────────────── */
+.alert-popup, .prompt-popup, .confirm-popup {
+  position: fixed; inset: 0; z-index: 1000;
+  background: rgba(0,0,0,0.5);
+  display: flex; justify-content: center; align-items: center;
+  font-family: var(--font-ko);
+}
+
+.alert-popup-content, .prompt-popup-content, .confirm-popup-content {
+  background: #fff;
+  padding: 20px 26px;
+  border-radius: 14px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+  min-width: 280px; max-width: 400px;
+  text-align: center;
+}
+
+.alert-popup-content p, .prompt-popup-content p, .confirm-popup-content p {
+  margin: 0 0 14px;
+  font-size: 14px;
+  line-height: 1.5;
+  word-wrap: break-word;
+  color: #333;
+}
+
+.prompt-popup-content input[type="text"] {
+  width: calc(100% - 20px);
+  padding: 8px 10px;
+  margin-bottom: 14px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  box-sizing: border-box;
+  font-size: 14px;
+}
+
+.popup-buttons {
+  display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px;
+}
+
+.popup-buttons button {
+  font-family: inherit;
+  padding: 6px 16px;
+  outline: none;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: background 0.15s;
+  min-width: auto;
+  box-shadow: none;
+}
+
+#alertOkBtn, #confirmOkBtn, #promptOkBtn {
+  background: var(--yellow); border-color: var(--yellow); color: #111;
+}
+#alertOkBtn:hover, #confirmOkBtn:hover, #promptOkBtn:hover {
+  background: var(--dark-yellow); border-color: var(--dark-yellow);
+}
+#confirmCancelBtn, #promptCancelBtn {
+  background: #F2F2F7; border-color: rgba(0,0,0,0.12); color: #111;
+}
+#confirmCancelBtn:hover, #promptCancelBtn:hover { background: #E5E5EA; }
+
+/* ── Status row ────────────────────────────────────────────── */
+.status_row {
+  display: flex; flex-flow: row;
+  justify-content: space-evenly; align-items: center;
+  padding: 0.5em 1em 0.5em 0; height: 34px;
+}
+.status_row > span:nth-child(odd)  { width: 75px; text-align: right; font-weight: bold; }
+.status_row > span:nth-child(2n)   { width: 150px; }
+
+/* ── Misc helpers ──────────────────────────────────────────── */
+.vertical   { display: flex; flex-flow: column; }
+.gap-8      { gap: 0.5em; }
+.horizontal { display: flex; flex-flow: row; }
+
+/* ── Responsive ────────────────────────────────────────────── */
+@media (max-width: 699px) {
+  :root { --nav-w: 0px; }
+
+  nav {
+    width: 100%;
+    height: auto;
+    top: var(--header-h);
+    bottom: auto;
+    display: flex;
+    justify-content: space-around;
+    border-right: none;
+    border-bottom: var(--border);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+  }
+
+  nav ul {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    padding: 0;
+    justify-content: space-around;
+  }
+
+  nav button {
+    width: auto;
+    padding: 8px 10px;
+    font-size: 9px;
+  }
+
+  nav button::before { display: none; }
+  nav button.menu-selected { background: rgba(18,189,212,0.1); }
+
+  main {
+    padding-top: calc(var(--header-h) + 44px + 8px);
+  }
+
+  main > div.content {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  #article_device > section,
+  #article_vision > section,
+  #article_motion > section,
+  #article_speech > section { width: 96%; margin: 0 auto; }
+
+  .pibo-section { overflow-x: auto; }
+}
+
+@media (min-width: 700px) {
+  #article_device > section { width: 49%; }
+}
+
+@media (min-width: 1000px) {
+  #article_vision > section  { width: 49%; }
+  #article_motion > section:nth-child(2) { width: calc(100% - 620px); }
+  #article_speech > section  { width: 49%; }
+  #article_device > section  { width: 49%; }
+}
