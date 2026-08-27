@@ -106,6 +106,28 @@ with sync_playwright() as pw:
     check('좁으면 상단 탭 숨김', not pg.is_visible('#tabs .tab[data-tab="code"]'))
     check('좁으면 하단 탭바 표시', pg.is_visible('#bottom_tabs .tab[data-tab="code"]'))
 
+    # 10b. 폰 크기 — 진짜 모바일 컨텍스트로 다시 연다
+    pg_m = b.new_page(viewport={'width': 360, 'height': 640},
+                      is_mobile=True, has_touch=True, device_scale_factor=2)
+    pg_m.goto(BASE, wait_until='networkidle')
+    pg_m.wait_for_timeout(1200)
+    check('폰 360px: 가로 스크롤 없음',
+          not pg_m.evaluate('document.documentElement.scrollWidth > '
+                            'document.documentElement.clientWidth'),
+          f"scrollWidth={pg_m.evaluate('document.documentElement.scrollWidth')}")
+    tb = pg_m.eval_on_selector('#bottom_tabs .tab',
+        'e=>{const r=e.getBoundingClientRect();return Math.round(r.height)}')
+    check('폰: 하단 탭 터치 크기 44px 이상', tb >= 44, f'{tb}px')
+    # 배지는 좁을 때 글자가 사라진다. 뜻 없는 점만 남으면 안 된다.
+    icon = pg_m.eval_on_selector('#badge_cam', 'e=>getComputedStyle(e,"::after").content')
+    check('폰: 배지가 뜻 있는 아이콘을 가짐', icon and icon not in ('none', '""'), icon)
+    # dvh / safe-area 를 실제로 쓰는지
+    css = pg_m.evaluate("[...document.styleSheets].map(s=>[...s.cssRules].map(r=>r.cssText).join('')).join('')")
+    check('폰: 100dvh 로 높이를 잡음', 'dvh' in css)
+    check('폰: safe-area-inset 을 씀 (viewport-fit=cover 와 짝)',
+          'safe-area-inset' in css)
+    pg_m.close()
+
     # 11. 새로고침해도 그 탭
     pg.set_viewport_size({'width': 1280, 'height': 800})
     pg.goto(BASE + '/app/code', wait_until='networkidle')

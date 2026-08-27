@@ -20,12 +20,24 @@
   --danger: #b00020;
   --ok: #1a7f37;
   --bar: 56px;
+
+  /* 노치·홈바 여백. 지원 안 하는 브라우저에서는 env() 가 0 이 된다. */
+  --safe-t: env(safe-area-inset-top, 0px);
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-l: env(safe-area-inset-left, 0px);
+  --safe-r: env(safe-area-inset-right, 0px);
 }
 
 * { box-sizing: border-box; }
 
 html, body {
-  margin: 0; padding: 0; height: 100%;
+  margin: 0; padding: 0;
+  /* 100% 대신 100dvh.
+     모바일 브라우저는 주소창이 나타났다 사라지며 뷰포트 높이가 변한다.
+     100%/100vh 로 잡으면 하단 탭바가 주소창 뒤로 숨는다.
+     dvh 를 모르는 브라우저를 위해 100vh 를 먼저 둔다. */
+  height: 100vh;
+  height: 100dvh;
   background: var(--bg); color: var(--ink);
   font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo',
                'Malgun Gothic', 'Noto Sans KR', sans-serif;
@@ -35,9 +47,11 @@ html, body {
 
 /* ── 상단바 ─────────────────────────────────────────────── */
 .topbar {
-  height: var(--bar);
+  height: calc(var(--bar) + var(--safe-t));
+  padding-top: var(--safe-t);
   display: flex; align-items: center; gap: 4px;
-  padding: 0 12px;
+  padding-left: calc(12px + var(--safe-l));
+  padding-right: calc(12px + var(--safe-r));
   background: var(--panel);
   border-bottom: 1px solid var(--line);
   position: relative; z-index: 20;
@@ -98,8 +112,8 @@ html, body {
 .icon-btn:hover { background: var(--bg); }
 
 /* ── 본문 ───────────────────────────────────────────────── */
-.stage { position: absolute; inset: var(--bar) 0 0 0; }
-.stage.with-bottom-tabs { bottom: var(--bar); }
+.stage { position: absolute; inset: calc(var(--bar) + var(--safe-t)) 0 0 0; }
+.stage.with-bottom-tabs { bottom: calc(var(--bar) + var(--safe-b)); }
 
 .frame {
   position: absolute; inset: 0;
@@ -177,12 +191,15 @@ html, body {
 .modal {
   position: fixed; inset: 0; z-index: 40;
   background: rgba(0,0,0,.42);
-  display: none; align-items: center; justify-content: center; padding: 16px;
+  display: none; align-items: center; justify-content: center;
+  padding: calc(16px + var(--safe-t)) calc(16px + var(--safe-r))
+           calc(16px + var(--safe-b)) calc(16px + var(--safe-l));
 }
 .modal.on { display: flex; }
 .modal-box {
   background: var(--panel); border-radius: 14px;
-  width: 100%; max-width: 560px; max-height: 88vh;
+  width: 100%; max-width: 560px;
+  max-height: 88vh; max-height: 88dvh;
   display: flex; flex-direction: column; overflow: hidden;
 }
 .modal-head {
@@ -249,7 +266,8 @@ html, body {
 
 /* ── 알림 ───────────────────────────────────────────────── */
 .toast {
-  position: fixed; left: 50%; top: 14px; transform: translateX(-50%);
+  position: fixed; left: 50%; top: calc(14px + var(--safe-t));
+  transform: translateX(-50%);
   z-index: 60; max-width: 90vw;
   padding: 11px 17px; border-radius: 9px; font-size: 14px;
   box-shadow: 0 3px 14px rgba(0,0,0,.22);
@@ -262,7 +280,12 @@ html, body {
 /* ── 하단 탭바 (교실 태블릿) ─────────────────────────────── */
 .bottom-tabs {
   display: none;
-  position: fixed; left: 0; right: 0; bottom: 0; height: var(--bar);
+  position: fixed; left: 0; right: 0; bottom: 0;
+  /* 홈 인디케이터(아이폰) 아래로 내용이 깔리지 않게 여백을 준다.
+     meta viewport-fit=cover 를 쓰면 이 처리를 반드시 같이 해야 한다. */
+  height: calc(var(--bar) + var(--safe-b));
+  padding-bottom: var(--safe-b);
+  padding-left: var(--safe-l); padding-right: var(--safe-r);
   background: var(--panel); border-top: 1px solid var(--line);
   z-index: 20;
 }
@@ -277,6 +300,10 @@ html, body {
   .topbar .tabs { display: none; }
   .bottom-tabs { display: flex; }
   .brand span.brand-name { display: none; }
-  .badge span { display: none; }   /* 좁으면 점만 남긴다 */
-  .badge { padding: 3px 6px; }
+
+  /* 좁으면 글자를 아이콘으로 바꾼다.
+     점만 남기면 무슨 뜻인지 알 수 없다 — 초록 점 하나로는 아무것도 전달되지 않는다. */
+  .badge span { display: none; }
+  .badge { padding: 4px 7px; font-size: 13px; }
+  .badge::after { content: attr(data-icon); line-height: 1; }
 }
