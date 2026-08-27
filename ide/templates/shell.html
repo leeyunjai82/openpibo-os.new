@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <title>openpibo</title>
+
+  <link rel="shortcut icon" href="/static/icon.png?ver=240319v1" type="image/x-icon" />
+  <link rel="stylesheet" href="/static/shell.css?ver=260827v1" />
+
+  <!-- 서버가 심어 주는 보드 정보. openpibo/profiles/<board>.toml 의 [features] 다. -->
+  <script>
+    window.__BOARD__ = {{ board | tojson }};
+  </script>
+</head>
+
+<body>
+  <!-- ── 상단바 ──────────────────────────────────────────── -->
+  <header class="topbar">
+    <button class="brand" id="brand" type="button" title="홈으로">
+      <img src="/static/circulus_logo.png" alt="" onerror="this.style.display='none'" />
+      <span class="brand-name">openpibo</span>
+      <span class="brand-board" id="board_label">파이보</span>
+    </button>
+
+    <nav class="tabs" id="tabs" aria-label="주요 화면"></nav>
+
+    <div class="topbar-right">
+      <!-- 자원을 누가 잡고 있는지 항상 드러낸다 -->
+      <div class="badges" aria-live="polite">
+        <span class="badge badge-cam"   id="badge_cam"><span>카메라 사용중</span></span>
+        <span class="badge badge-run"   id="badge_run"><span>코드 실행중</span></span>
+        <span class="badge badge-model" id="badge_model"><span>모델 로딩중</span></span>
+      </div>
+      <button class="icon-btn" id="btn_settings" type="button" title="설정" aria-label="설정">⚙</button>
+    </div>
+  </header>
+
+  <!-- ── 본문 ────────────────────────────────────────────── -->
+  <main class="stage with-bottom-tabs" id="stage">
+    <!-- 홈 -->
+    <section class="home" id="home_pane">
+      <div class="home-inner">
+        <h1>무엇을 해볼까요?</h1>
+        <p class="sub">탭이나 카드를 눌러 이동합니다. 창이 새로 뜨지 않습니다.</p>
+        <div class="cards" id="home_cards"></div>
+      </div>
+    </section>
+
+    <!-- 전환 중. 지연을 숨기지 않고 몇 초 걸리는지 그대로 보여준다 -->
+    <section class="switching" id="switching" aria-live="polite">
+      <div class="spin"></div>
+      <h2 id="switch_title">준비 중</h2>
+      <p id="switch_detail"></p>
+      <div class="switch-steps" id="switch_steps">
+        <span>시작</span><span>실행</span><span>준비 완료</span>
+      </div>
+      <button class="retry-btn" id="switch_retry" type="button" style="display:none">다시 시도</button>
+    </section>
+  </main>
+
+  <!-- ── 하단 탭바 (교실 태블릿) ─────────────────────────── -->
+  <nav class="bottom-tabs" id="bottom_tabs" aria-label="주요 화면"></nav>
+
+  <!-- ── 설정 모달 ───────────────────────────────────────── -->
+  <div class="modal" id="modal_settings" role="dialog" aria-modal="true" aria-label="설정">
+    <div class="modal-box">
+      <div class="modal-head">
+        <h2>설정</h2>
+        <button class="icon-btn" id="settings_close" type="button" aria-label="닫기">✕</button>
+      </div>
+
+      <div class="settings-tabs">
+        <button data-pane="info"  type="button">시스템 정보</button>
+        <button data-pane="wifi"  type="button">와이파이</button>
+        <button data-pane="log"   type="button">실행 기록</button>
+        <button data-pane="power" type="button">전원</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="settings-pane" data-pane="info">
+          <dl class="kv" id="info_kv"></dl>
+        </div>
+
+        <div class="settings-pane" data-pane="wifi">
+          <p class="sub" id="wifi_current" style="color:var(--ink-dim);font-size:13px;margin:0 0 12px"></p>
+          <div class="field">
+            <label for="wifi_ssid">와이파이</label>
+            <select id="wifi_ssid"></select>
+          </div>
+          <div class="field">
+            <label for="wifi_psk">비밀번호 <span style="opacity:.7">(없으면 비워 두세요)</span></label>
+            <input type="password" id="wifi_psk" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label for="wifi_identity">아이디 <span style="opacity:.7">(학교망 등 필요할 때만)</span></label>
+            <input type="text" id="wifi_identity" autocomplete="off" />
+          </div>
+          <div class="warn-box">설정하면 기기가 <b>다시 시작</b>합니다.</div>
+          <div class="modal-foot" style="padding:0">
+            <button class="btn" id="wifi_rescan" type="button">다시 찾기</button>
+            <button class="btn btn-primary" id="wifi_save" type="button">저장하고 다시 시작</button>
+          </div>
+        </div>
+
+        <div class="settings-pane" data-pane="log">
+          <div class="modal-foot" style="padding:0 0 10px">
+            <button class="btn" id="log_refresh" type="button">새로고침</button>
+          </div>
+          <pre class="log-view" id="log_view"></pre>
+        </div>
+
+        <div class="settings-pane" data-pane="power">
+          <div class="danger-box">
+            전원을 끌 때는 <b>반드시 이 버튼</b>을 쓰세요.
+            전원선을 바로 뽑으면 SD 카드가 손상될 수 있습니다.
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn" id="btn_power_restart" type="button">다시 시작</button>
+            <button class="btn btn-danger" id="btn_power_off" type="button">전원 끄기</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status"></div>
+
+  <script src="/static/shell.js?ver=260827v1"></script>
+</body>
+</html>

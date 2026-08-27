@@ -51,7 +51,7 @@ except Exception as ex:
 @app.get('/', response_class=HTMLResponse)
 async def f(request:Request):
   #await emit('onoff', False if pibo is None else True)
-  return templates.TemplateResponse("index.html", {"request": request})
+  return templates.TemplateResponse(request, "index.html", {})
 
 @app.post('/import_motion')
 async def import_motion(data:UploadFile = File(...)):

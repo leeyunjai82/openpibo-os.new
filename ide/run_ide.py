@@ -23,6 +23,7 @@ from openpibo.board import BOARD
 
 import proxy
 import services
+import system_api
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -167,15 +168,40 @@ async def get_directory(folderName: str):
   return files
 
 
-# ── 랜딩 페이지 ──────────────────────────────────────────────
+# ── SPA shell ────────────────────────────────────────────────
+#
+# 상단바 + 탭 + 설정 모달을 셸이 들고, 각 화면은 iframe 으로 붙는다.
+# 1단계에서 뒤쪽 서비스가 전부 같은 origin 으로 들어와서 가능해진 구조다.
+#
+# /app/<탭> 을 전부 셸로 돌려준다. 클라이언트 라우팅이지만 주소가 진짜로 남아서
+# 새로고침해도 그 탭이 열리고 뒤로가기가 탭 사이를 오간다.
+
 @app.get('/', response_class=HTMLResponse)
+async def read_shell(request: Request):
+  return templates.TemplateResponse(request, "shell.html", {"board": BOARD_INFO})
+
+
+@app.get('/app', response_class=HTMLResponse)
+@app.get('/app/{tab:path}', response_class=HTMLResponse)
+async def read_shell_tab(request: Request, tab: str = ''):
+  return templates.TemplateResponse(request, "shell.html", {"board": BOARD_INFO})
+
+
+@app.get('/landing', response_class=HTMLResponse)
 async def read_landing(request: Request):
-  return templates.TemplateResponse("landing.html", {"request": request, "board": BOARD_INFO})
+  """
+  예전 랜딩 화면. 셸이 기기에서 확인될 때까지 남겨 둔다.
+
+  현장 기기가 있는 상태에서 진입점을 한 번에 갈아치우면, 셸에 문제가 있을 때
+  돌아갈 곳이 없다. 2단계가 실기에서 확인되면 지운다.
+  """
+
+  return templates.TemplateResponse(request, "landing.html", {"board": BOARD_INFO})
 
 # ── IDE ───────────────────────────────────────────────────────
 @app.get('/ide', response_class=HTMLResponse)
 async def read_ide(request: Request):
-  return templates.TemplateResponse("index.html", {"request": request, "board": BOARD_INFO})
+  return templates.TemplateResponse(request, "index.html", {"board": BOARD_INFO})
 
 
 @app.get('/api/board')
@@ -680,6 +706,26 @@ async def periodic_system_update():
 #@app.on_event('startup')
 #async def on_startup():
 #  asyncio.create_task(periodic_system_update())
+
+
+# ── /api/system/* ────────────────────────────────────────────
+#
+# 설정 모달이 쓰는 것들. 지금까지 socket.io 이벤트와 다른 origin 호출(:8080)로
+# 흩어져 있었다. 설정은 어느 탭에서든 열려야 하는데(00-decisions.md 5.2),
+# 그러려면 셸이 socket.io 를 또 붙이거나 교차 출처로 나가야 했다. 둘 다 안 한다.
+# 전부 같은 origin 의 REST 로 모으고 봉투를 씌운다.
+#
+# 와이파이는 booting.py(:8080)가 들고 있어 system_api 가 중계한다 —
+# **마지막 남은 교차 출처 호출이 여기서 사라진다.**
+
+system_api.register(
+  app, services, proxy,
+  system_api.Hooks(
+    code_running=lambda: ps is not None and ps.returncode is None,
+    record=lambda: record,
+    halt=mcu_halt,
+  ),
+)
 
 
 # ── 리버스 프록시 ─────────────────────────────────────────────

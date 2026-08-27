@@ -52,7 +52,7 @@ app.mount("/build", StaticFiles(directory="/home/pi/openpibo-os/docs/build"), na
 
 @app.get('/', response_class=HTMLResponse)
 async def read_root(request: Request):
-  return templates.TemplateResponse("index.html", {"request": request})
+  return templates.TemplateResponse(request, "index.html", {})
 
 @app.get("/device/{pkt}")
 async def device_command(pkt: str):

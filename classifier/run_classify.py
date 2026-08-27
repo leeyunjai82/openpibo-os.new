@@ -100,7 +100,7 @@ templates_classifier = Jinja2Templates(directory="templates")
 
 @classifier_router.get('/', response_class=HTMLResponse)
 async def classifier_index(request: Request):
-    return templates_classifier.TemplateResponse("index.html", {"request": request})
+    return templates_classifier.TemplateResponse(request, "index.html", {})
 
 @classifier_router.get('/classifier')
 async def classifier_toggle(enable: str):

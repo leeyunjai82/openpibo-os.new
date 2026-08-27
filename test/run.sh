@@ -31,6 +31,9 @@ else
   echo "[건너뜀] 툴박스 필터 / 프록시 시험 — node 가 없습니다."
 fi
 
+# 셸(SPA) 브라우저 시험. playwright 가 없으면 스스로 건너뛴다.
+run "셸 UI (브라우저)" bash test/ui/run.sh
+
 run "파이썬 문법 (전체)" $PY -m compileall -q openpibo system ide classifier tools test
 
 echo

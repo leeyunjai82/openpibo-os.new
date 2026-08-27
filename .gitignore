@@ -238,3 +238,6 @@ $RECYCLE.BIN/
 # openpibo — 시험용 임시 홈 (test/test_board.py)
 .tmp-test/
 .tmp/
+
+# 셸 UI 시험용 임시 홈 (test/ui/run.sh)
+.tmp-ui/
