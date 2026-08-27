@@ -65,8 +65,21 @@ codePath = ''
 mutex = asyncio.Lock()
 
 def is_protect(p):
+  # 문자열 in 매칭이라 ../ 가 정규화되지 않아
+  # /home/pi/code/../openpibo-os/... 같은 경로가 통과했다.
+  # (docs/plan/04-known-issues.md 6)
+  real = os.path.realpath(p)
   for protected_path in protectList:
-    if protected_path in p:
+    prot = os.path.realpath(protected_path)
+    if real == prot:
+      return True
+    try:
+      if os.path.commonpath([real, prot]) == prot:
+        return True
+    except ValueError:      # 드라이브가 다르면(윈도우) 비교 불가
+      pass
+    # protectList 에는 '/home/pi/openpibo-' 처럼 접두사로 쓰는 항목이 있다.
+    if real.startswith(protected_path):
       return True
   return False
 
@@ -129,7 +142,9 @@ async def download_item(filename: str):
     return JSONResponse(content={'error': '파일 다운로드 오류: 보호 디렉토리입니다.'}, status_code=403)
 
   if not os.path.exists(full_path):
-    raise JSONResponse(content={'error':"파일 또는 폴더를 찾을 수 없습니다."}, status_code=404)
+    # JSONResponse 는 Exception 이 아니다. raise 하면 TypeError 가 나서
+    # 404 대신 500 이 떨어진다. (docs/plan/04-known-issues.md 1)
+    return JSONResponse(content={'error':"파일 또는 폴더를 찾을 수 없습니다."}, status_code=404)
 
   if os.path.isfile(full_path):
     return FileResponse(full_path, filename=filename)
@@ -143,7 +158,7 @@ async def download_item(filename: str):
     return FileResponse(zip_path, media_type="application/zip", filename="download.zip")
 
   else:
-    raise JSONResponse(content={'error':"올바른 파일 또는 폴더가 아닙니다."}, status_code=403)
+    return JSONResponse(content={'error':"올바른 파일 또는 폴더가 아닙니다."}, status_code=403)
 
 @app.post('/upload')
 async def upload_file(files: List[UploadFile] = File(...)):
@@ -202,7 +217,7 @@ async def handle_init(sid):
   await app.sio.emit('init', {'codepath': codePath, 'codetext': codeText, 'path': PATH})
 
 @app.get('/tools')
-async def classifier(enable: str):
+async def toggle_tools(enable: str):
   print("Eanable tools:", enable)
   if enable == "on":
     subprocess.Popen(['systemctl', 'stop', 'classify.service'])
@@ -214,7 +229,7 @@ async def classifier(enable: str):
   return HTMLResponse(content="", status_code=200)
 
 @app.get('/classifier')
-async def classifier(enable: str):
+async def toggle_classifier(enable: str):
   print("Eanable classifier:", enable)
   if enable == "on":
     subprocess.Popen(['systemctl', 'stop', 'tools.service'])
@@ -226,7 +241,7 @@ async def classifier(enable: str):
   return HTMLResponse(content="", status_code=200)
 
 @app.get('/llm')
-async def classifier(enable: str):
+async def toggle_llm(enable: str):
   print("Eanable llm:", enable)
   if enable == "on":
     subprocess.Popen(['systemctl', 'stop', 'tools.service'])
@@ -366,7 +381,9 @@ async def handle_restore(sid):
         os.system('echo "#11:!" > /dev/ttyS0')
         subprocess.Popen(['shutdown', '-h', 'now'])
     except Exception as e:
-        await sio.emit('update', {'dialog': f'초기화 오류: {str(e)}'}, room=sid)
+        # sio 는 정의되지 않은 이름이었다. 초기화가 실패하면 에러 메시지 대신
+        # NameError 가 나서 화면에 아무것도 안 뜬다. (docs/plan/04-known-issues.md 2)
+        await app.sio.emit('update', {'dialog': f'초기화 오류: {str(e)}'}, room=sid)
 
 @app.sio.on('add_file')
 async def handle_add_file(sid, p):

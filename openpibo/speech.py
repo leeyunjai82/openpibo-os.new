@@ -11,6 +11,7 @@ import csv
 import random
 import json
 import os
+import time
 import requests
 from . import napi_host, sapi_host
 from .modules.speech.mtranslate import translate
@@ -509,62 +510,141 @@ Functions:
 
     return res.json()['data']
 
-  def start_llm(self, port=50020):
+  #: llama-server 가 뜨는 포트. 실제 값은 systemd 유닛이 정한다
+  #: (system/units/llama-server.service). 유닛을 기기에서 떠 오면 여기와 맞출 것.
+  LLM_PORT = 50020
+
+  #: 용도별 생성 프리셋. (docs/plan/04-known-issues.md 9)
+  #: 형식이 정해진 출력(블록 생성, 분류)에 0.8 은 너무 높다.
+  LLM_PRESETS = {
+    'chat':   {'temperature': 0.8, 'top_p': 0.95, 'max_tokens': 200},
+    'rag':    {'temperature': 0.3, 'top_p': 0.90, 'max_tokens': 300},
+    'strict': {'temperature': 0.1, 'top_p': 0.80, 'max_tokens': 200},
+  }
+
+  def start_llm(self, port=None, timeout=60):
     """
-    LLM 서비스를 시작합니다. (Chat 모드)
+    LLM 서비스를 시작하고 **뜰 때까지 기다립니다.**
 
     example::
 
       dialog.start_llm()
 
+    :param int port: 생략하면 ``LLM_PORT``
+    :param int timeout: 기다릴 최대 시간(초). 넘으면 예외
+    :returns: 걸린 시간(초)
+
+    .. note::
+       ``systemctl start`` 는 바로 돌아온다. 1B Q4 를 올리는 데 수 초 이상 걸리므로
+       그 직후에 :meth:`call_llm` 을 부르면 연결 거부가 난다.
+       그래서 여기서 ``/health`` 를 폴링한다. (docs/plan/04-known-issues.md 5)
     """
 
-    os.system(f"systemctl start llama-server")
-    print("Connect to http:{Device IP}:50020 for LLM Web-UI")
+    port = port or self.LLM_PORT
+    os.system("systemctl start llama-server")
 
-  def call_llm(self, prompt=None, system_prompt=None, temperature=0.8, max_tokens=100):
+    url = f"http://127.0.0.1:{port}/health"
+    start = time.time()
+
+    while time.time() - start < timeout:
+      try:
+        if requests.get(url, timeout=2).status_code == 200:
+          return round(time.time() - start, 1)
+      except requests.RequestException:
+        pass
+      time.sleep(0.5)
+
+    raise Exception(
+      f"LLM 서버가 {timeout}초 안에 뜨지 않았습니다 ({url}). "
+      f"`systemctl status llama-server` 를 확인하세요."
+    )
+
+  def call_llm(self, prompt=None, system_prompt=None, temperature=None,
+               max_tokens=None, preset='chat', stream=True, on_token=None,
+               timeout=120, port=None):
     """
     LLM 서버(OpenAI 호환 Chat Completions API)를 호출합니다.
-    
-    예시:
-        dialog.call_llm(prompt="안녕하세요", system_prompt="너는 내 스마트한 비서야")
-    
-    :param str prompt: 사용자의 입력 메시지.
-    :param str system_prompt: 시스템 프롬프트. (없으면 기본값 유지)
-    :return: 생성된 텍스트 또는 API 응답 전체 JSON.
+
+    example::
+
+      dialog.call_llm(prompt="안녕하세요", system_prompt="너는 내 스마트한 비서야")
+
+      # 토큰이 오는 대로 받기
+      dialog.call_llm(prompt="...", on_token=lambda t: print(t, end='', flush=True))
+
+    :param str prompt: 사용자의 입력 메시지
+    :param str system_prompt: 시스템 프롬프트
+
+      .. note::
+         Gemma 3 에는 시스템 롤이 없다. 서버가 첫 user 턴에 합쳐 준다.
+
+    :param str preset: ``chat`` | ``rag`` | ``strict``. 용도별 기본 파라미터
+    :param float temperature: 주면 프리셋을 덮어쓴다
+    :param int max_tokens: 주면 프리셋을 덮어쓴다
+    :param bool stream: 스트리밍 수신 여부
+    :param on_token: 토큰 조각마다 부를 함수. ``stream=True`` 일 때만
+    :param int timeout: 응답 타임아웃(초)
+    :return: 생성된 텍스트
+
+    .. note::
+       파이 4 에서 첫 토큰까지 수 초~수십 초다. 스트리밍이 없으면 그동안 완전히
+       멈춰 있다. 총 시간이 같아도 체감이 다르다.
+       (docs/plan/04-known-issues.md 3, 4)
     """
 
-    url = "http://0.0.0.0:50020/v1/chat/completions"
+    port = port or self.LLM_PORT
+    # 0.0.0.0 은 바인드 주소지 접속 주소가 아니다. (04-known-issues.md 10)
+    url = f"http://127.0.0.1:{port}/v1/chat/completions"
 
-    # Chat API 메시지 배열 구성
+    cfg = dict(self.LLM_PRESETS.get(preset, self.LLM_PRESETS['chat']))
+    if temperature is not None:
+      cfg['temperature'] = temperature
+    if max_tokens is not None:
+      cfg['max_tokens'] = max_tokens
+
     messages = []
     if system_prompt:
-        messages.append({"role": "system", "content": system_prompt})
+      messages.append({"role": "system", "content": system_prompt})
     if prompt:
-        messages.append({"role": "user", "content": prompt})
+      messages.append({"role": "user", "content": prompt})
 
-    payload = {
-      "model": "llm-model.gguf",  # 모델명 (환경에 맞게 수정)
-      "messages": messages,
-      "temperature": temperature,   # 생성 텍스트의 무작위성 조절
-      "top_p": 0.95,        # 누적 확률 임계값
-      "max_tokens": max_tokens     # 생성 최대 토큰 수 (필요에 따라 조정)
-    }
+    # 모델명은 llama.cpp 가 모델 하나일 때 무시한다. 서버가 고르게 둔다.
+    payload = {"messages": messages, "stream": bool(stream), **cfg}
 
     try:
-      response = requests.post(url, json=payload)
-      response.raise_for_status()  # 4xx, 5xx 에러 발생 시 예외 처리
+      # 타임아웃이 없으면 모델 로딩 중이거나 서버가 뻗었을 때 학생 코드가
+      # 영원히 멈춘다. (연결 5초, 응답 timeout 초)
+      response = requests.post(url, json=payload, stream=bool(stream),
+                               timeout=(5, timeout))
+      response.raise_for_status()
     except requests.RequestException as e:
       raise Exception(f"LLM 서버 호출 실패: {e}")
 
-    data = response.json()
-
-    # OpenAI Chat API 표준 응답 형식에 따른 처리
-    if "choices" in data and isinstance(data["choices"], list) and len(data["choices"]) > 0:
-      return data["choices"][0]["message"]["content"]
-    else:
-      # 예상하는 키가 없으면 전체 응답 데이터를 반환합니다.
+    if not stream:
+      data = response.json()
+      if isinstance(data.get("choices"), list) and data["choices"]:
+        return data["choices"][0]["message"]["content"]
       return data
+
+    chunks = []
+    for line in response.iter_lines(decode_unicode=True):
+      if not line or not line.startswith("data:"):
+        continue
+      body = line[5:].strip()
+      if body == "[DONE]":
+        break
+      try:
+        delta = json.loads(body)["choices"][0].get("delta", {})
+      except (ValueError, KeyError, IndexError):
+        continue
+      piece = delta.get("content")
+      if not piece:
+        continue
+      chunks.append(piece)
+      if on_token:
+        on_token(piece)
+
+    return "".join(chunks)
 
   def stop_llm(self):
     """
