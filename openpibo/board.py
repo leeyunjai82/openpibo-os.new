@@ -128,10 +128,13 @@ def current_board_name():
   except (OSError, ValueError):
     pass
 
+  # 조용히 기본값으로 넘어가지 않는다. 보드를 잘못 잡으면 화면도 마이크도
+  # 카메라 방향도 전부 틀리는데, 그때 원인을 되짚기가 아주 어렵다.
+  # 한 줄로 줄인 것은 IDE 콘솔에 학생 코드와 섞여 보이기 때문이다.
+  # `sudo bash system/set_board.sh <보드>` 를 한 번 하면 사라진다.
   warnings.warn(
-    f"보드를 판별하지 못해 '{DEFAULT_BOARD}' 로 갑니다. "
-    f"기기에서는 `sudo bash /home/pi/openpibo-os/system/set_board.sh <pibo|pibrain>` 를, "
-    f"개발 중에는 OPENPIBO_BOARD 환경변수를 쓰세요.",
+    f"보드 미지정 — '{DEFAULT_BOARD}' 로 진행합니다 "
+    f"(고치기: sudo bash system/set_board.sh <{'|'.join(BOARDS) or 'pibo'}>)",
     RuntimeWarning, stacklevel=2,
   )
   return DEFAULT_BOARD
