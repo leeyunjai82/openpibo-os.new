@@ -8,6 +8,8 @@ Class:
 import os
 from threading import Thread
 
+from .board import BOARD
+
 class Audio:
   """
 Functions:
@@ -18,18 +20,22 @@ Functions:
   mp3, wav 오디오 파일을 재생 및 정지합니다.
   """
 
-  def play(self, filename, volume=80, background=True, volume2=1.0):
+  def play(self, filename, volume=None, background=True, volume2=1.0):
     """
     mp3 또는 wav 파일을 재생
 
     :param str filename: 오디오 파일 경로 (mp3, wav)
-    :param int volume: 음량을 설정합니다. (0~100)
+    :param int volume: 음량을 설정합니다. (0~100) 생략하면 보드 기본값
+      (파이보 80 / 파이브레인 100)
     :param bool background: 백그라운드 실행 여부
     :param float volume2: 개별 음량을 조절합니다. (비율)
     """
 
     def play_thread(args):
       os.system(args)
+
+    if volume is None:
+      volume = BOARD.audio.default_volume
 
     if not os.path.isfile(filename):
       raise Exception(f'"{filename}" does not exist')
@@ -47,9 +53,8 @@ Functions:
       raise Exception(f'"{volume2}" is float(0.0~1.5)')
 
     volume = int(volume/2) + 40 # 실제 50 - 100%로 설정, 0-50%는 소리가 너무 작음
-    #cmd = f'amixer -q -c Headphones sset Headphone {volume}%;'
-    cmd = f'amixer -q -c Headphones sset PCM {volume}%;'
-    #cmd = f'amixer -q -c MAX98357A sset PCM {volume}%;'
+    # 파이보 Headphones / 파이브레인 MAX98357A — 보드 프로파일이 정한다
+    cmd = f'amixer -q -c {BOARD.audio.card} sset {BOARD.audio.mixer} {volume}%;'
     cmd += f'play -q -V1 -v {volume2} "{filename}"'
 
     if background:
@@ -72,10 +77,15 @@ Functions:
     :param int timeout: 녹음 시간(s)
     """
 
+    mic = BOARD.mic
+    # 파이보 16000/S32_LE, 파이브레인 44100/S16_LE — 마이크 하드웨어가 다르다
+    arecord = (f'arecord -D {mic.device} -c{mic.channels} -r {mic.rate} '
+               f'-f {mic.format} -d {timeout} -t wav -q')
+
     if verbose == True:
-      os.system(f'arecord -D plug:dmic_sv -c2 -r 16000 -f S32_LE -d {timeout} -t wav -q -vv -V streo stream.raw;sox stream.raw -c 1 -b 16 {filename};rm stream.raw')
+      os.system(f'{arecord} -vv -V stereo stream.raw;sox stream.raw -c 1 -b 16 {filename};rm stream.raw')
     else:
-      os.system(f'arecord -D plug:dmic_sv -c2 -r 16000 -f S32_LE -d {timeout} -t wav -q stream.raw;sox stream.raw -q -c 1 -b 16 {filename};rm stream.raw')
+      os.system(f'{arecord} stream.raw;sox stream.raw -q -c 1 -b 16 {filename};rm stream.raw')
 
 if __name__ == "__main__":
   import time

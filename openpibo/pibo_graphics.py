@@ -1,5 +1,8 @@
 """
-USB UART 통신을 위한 클래스 입니다.
+Turtle package 와 비슷한 그래픽을 그립니다.
+
+기준 크기는 보드마다 다르다 — 파이보 320x240, 파이브레인 240x320.
+생략하면 보드 프로파일의 ``graphics.width`` / ``graphics.height`` 를 쓴다.
 
 Class:
 :obj:`~openpibo.pibo_graphics.PiboGraphics`
@@ -12,13 +15,16 @@ import time
 import os
 import openpibo_models
 
+from .board import BOARD
+
 class PiboGraphics:
-    def __init__(self, view_instance, width=320, height=240,
+    def __init__(self, view_instance, width=None, height=None,
                  animation_delay=0.01, move_step_size=2, turn_step_size=5, icon_path=openpibo_models.filepath('pibo_graphics.png')):
         if view_instance is None: raise ValueError("view_instance cannot be None")
         self.view = view_instance
-        self.width = width
-        self.height = height
+        # 파이보 320x240 / 파이브레인 240x320
+        self.width = width if width is not None else BOARD.graphics.width
+        self.height = height if height is not None else BOARD.graphics.height
         self.animation_delay = max(0, animation_delay)
         self.move_step_size = max(1, move_step_size)
         self.turn_step_size = max(1, turn_step_size)

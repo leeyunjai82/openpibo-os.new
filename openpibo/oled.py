@@ -1,8 +1,25 @@
 """
 LCD 화면에 문자나 이미지를 출력합니다.
 
+보드마다 화면이 다르다. 어떤 클래스를 쓸지는 :func:`~openpibo.oled.get_display` 에게 맡긴다.
+
+  ==========  ====================  ==========================
+  driver      클래스                 대상
+  ==========  ====================  ==========================
+  ssd1306     :obj:`Oled`           **파이보** 128x64 흑백 SPI
+  ili9341     :obj:`OledByPiBrain`  **파이브레인** 240x320 컬러 SPI
+  st7735      :obj:`Oled7735`       미사용 / **미검증** (소스 보존)
+  ==========  ====================  ==========================
+
+새 코드는 ``from openpibo.oled import get_display`` 를 쓴다.
+``from openpibo.oled import Oled`` 는 파이보에 고정된 코드다.
+
+Function:
+:func:`~openpibo.oled.get_display`
+
 Class:
 :obj:`~openpibo.oled.Oled`
+:obj:`~openpibo.oled.Oled7735`
 :obj:`~openpibo.oled.OledByPiBrain`
 """
 
@@ -19,6 +36,8 @@ from PIL import Image, ImageDraw, ImageFont, ImageOps
 import os
 import numpy as np
 import openpibo_models
+
+from .board import BOARD
 
 class Oled:
   """
@@ -45,11 +64,14 @@ Functions:
 
     self.width = w
     self.height = h
-    self.font_path = openpibo_models.filepath("KDL.ttf") # KoPub Dotum Light
-    #self.font_path = openpibo_models.filepath("NS_CJK_R.otf") # Noto Sans CJK Regular
-    self.font_size = 10
+    # 파이보 KDL.ttf(KoPub Dotum Light) / 파이브레인 NS_CJK_R.otf(Noto Sans CJK)
+    self.font_path = openpibo_models.filepath(BOARD.display.font)
+    self.font_size = BOARD.display.font_size
 
     spi = busio.SPI(11, 10, 9)
+    # rst 는 확인 전까지 프로파일로 옮기지 않는다 (docs/plan/00-decisions.md 2.4).
+    # pibrain 레포가 이 줄만 board.D24 로 바꿔 놨는데, 파이브레인은 SSD1306 을
+    # 쓰지 않으므로 그 값은 검증된 적이 없다. 현행 동작(None)을 그대로 둔다.
     rst_pin = None #digitalio.DigitalInOut(board.D24) # any pin!
     cs_pin = digitalio.DigitalInOut(board.D8)    # any pin!
     cs_pin.switch_to_output(value=0)
@@ -219,6 +241,21 @@ Functions:
 
 class Oled7735:
   """
+.. warning::
+
+   **미검증 / 미사용 클래스다. 소스 보존 목적으로만 남겨 둔다.**
+   (docs/plan/00-decisions.md 2.3, docs/plan/04-known-issues.md 21)
+
+   현행 제품 중 이 클래스를 쓰는 보드는 없다. 나중에 다른 장치를 붙일 때
+   출발점으로 쓰라고 남긴 것이고, 아래 세 가지는 **실기로 확인되지 않았다.**
+
+   1. ``bl=cs_pin`` — 백라이트를 CS 핀에 물려 놨다. 의도가 아니라면
+      SPI 트랜잭션마다 백라이트가 흔들린다.
+   2. 생성자가 ``w=128, h=64`` 인데 ST7735S 는 통상 128x160 또는 80x160 이다.
+   3. ``rst_pin = None``
+
+   확인 없이 이 값들을 다른 보드 프로파일로 옮기지 말 것.
+
 Functions:
 :meth:`~openpibo.oled.Oledc.show`
 :meth:`~openpibo.oled.Oledc.clear`
@@ -265,6 +302,8 @@ Functions:
     dc_pin = digitalio.DigitalInOut(board.D23)    # any pin!
 
     spi = busio.SPI(11,10,9)
+    # 미검증: bl=cs_pin (백라이트를 CS 에 물림), w/h 128x64, rst=None.
+    # 클래스 docstring 의 경고를 먼저 읽을 것.
     self.oled = st7735.ST7735S(spi, baudrate=36000000, rotation=270, width=self.height, height=self.width, cs=cs_pin, bl=cs_pin, dc=dc_pin, rst=rst_pin, x_offset=1, y_offset=2)
     self.font = ImageFont.truetype(self.font_path, self.font_size)
     self.image = Image.new("RGB", (self.width, self.height), (0,0,0))
@@ -509,9 +548,8 @@ Functions:
 
     self.width = w
     self.height = h
-    # self.font_path = openpibo_models.filepath("KDL.ttf") # KoPub Dotum Light
-    self.font_path = openpibo_models.filepath("NS_CJK_R.otf") # Noto Sans CJK Regular
-    self.font_size = 10
+    self.font_path = openpibo_models.filepath(BOARD.display.font)
+    self.font_size = BOARD.display.font_size
 
     spi = busio.SPI(11, 10, 9)
     rst_pin = None #digitalio.DigitalInOut(board.D24) # any pin!
@@ -672,3 +710,44 @@ Functions:
 
     self.draw_data(img)
     self.show()
+
+
+DRIVERS = {
+  'ssd1306': 'Oled',            # 파이보
+  'ili9341': 'OledByPiBrain',   # 파이브레인
+  'st7735':  'Oled7735',        # 미검증 (위 경고 참고)
+}
+
+
+def get_display(*args, **kwargs):
+  """
+  **보드 프로파일이 정한 디스플레이 클래스**를 만들어 돌려준다.
+
+  보드별로 ``from openpibo.oled import Oled`` / ``... import OledByPiBrain as Oled``
+  로 갈라 쓰던 것을 이 함수 하나로 모은다. 새 코드는 이걸 쓴다.
+
+  example::
+
+    from openpibo.oled import get_display
+
+    oled = get_display()   # 파이보면 Oled, 파이브레인이면 OledByPiBrain
+    oled.draw_text((0, 0), '안녕')
+    oled.show()
+
+  :returns: 보드에 맞는 디스플레이 인스턴스
+
+  크기를 넘기지 않으면 프로파일의 ``display.width`` / ``display.height`` 를 쓴다.
+  """
+
+  driver = BOARD.display.driver
+  name = DRIVERS.get(driver)
+
+  if name is None:
+    raise Exception(
+      f'알 수 없는 display.driver 값입니다: "{driver}" '
+      f'({"|".join(DRIVERS)}) — {BOARD.name} 프로파일을 확인하세요.'
+    )
+
+  kwargs.setdefault('w', BOARD.display.width)
+  kwargs.setdefault('h', BOARD.display.height)
+  return globals()[name](*args, **kwargs)

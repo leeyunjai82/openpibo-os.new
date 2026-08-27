@@ -13,6 +13,8 @@ from picamera2 import Picamera2
 import openpibo_models
 import logging
 
+from .board import BOARD
+
 os.environ['LIBCAMERA_LOG_LEVELS'] = '3'
 
 class Camera:
@@ -55,9 +57,18 @@ Functions:
   def __init__(self, cam=0, width=None, height=None):
     """
     Camera 클래스를 초기화합니다.
+
+    :param int width: 출력 폭. 생략하면 보드 기본값
+    :param int height: 출력 높이. 생략하면 보드 기본값
+
+    파이보는 640x480(가로), 파이브레인은 480x640(세로)이다.
+    센서에서 받는 프레임은 두 보드가 같고, ``read()`` 가 붙어 있는 방향에 맞춰
+    되돌린다. 어떻게 되돌릴지는 보드 프로파일의 ``camera.transform`` 이 정한다.
     """
 
-    self.width, self.height = 640, 480
+    self.width  = width  or BOARD.camera.width
+    self.height = height or BOARD.camera.height
+    self.transform = BOARD.camera.transform
     cv2.setUseOptimized(True)
     cv2.setNumThreads(cv2.getNumberOfCPUs())
     cap = Picamera2()
@@ -100,9 +111,21 @@ Functions:
     :returns: ``numpy.ndarray`` 타입 이미지 객체
     """
 
-    return cv2.resize(cv2.flip(self.cap.capture_array(), -1), (self.width, self.height))
-    # return cv2.rotate(cv2.resize(self.cap.capture_array(), (self.height, self.width)),cv2.ROTATE_90_COUNTERCLOCKWISE)
-    # return cv2.rotate(self.cap.capture_array(),cv2.ROTATE_90_COUNTERCLOCKWISE)
+    frame = self.cap.capture_array()
+
+    if self.transform == 'flip_both':      # 파이보 — 카메라가 뒤집혀 붙어 있다
+      return cv2.resize(cv2.flip(frame, -1), (self.width, self.height))
+
+    if self.transform == 'rot90ccw':       # 파이브레인 — 세로 화면
+      return cv2.rotate(cv2.resize(frame, (self.height, self.width)), cv2.ROTATE_90_COUNTERCLOCKWISE)
+
+    if self.transform == 'none':
+      return cv2.resize(frame, (self.width, self.height))
+
+    raise Exception(
+      f'알 수 없는 camera.transform 값입니다: "{self.transform}" '
+      f'(flip_both|rot90ccw|none)'
+    )
 
   def create_matte(self, colors=(255,255,255)):
     if type(colors) is str:

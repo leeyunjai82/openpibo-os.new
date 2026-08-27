@@ -11,6 +11,8 @@ import json
 import openpibo_models
 #current_path = os.path.dirname(os.path.abspath(__file__))
 
+from .board import BOARD
+
 class Motion:
   """
 Functions:
@@ -24,9 +26,14 @@ Functions:
 :meth:`~openpibo.motion.Motion.set_motion_raw`
 :meth:`~openpibo.motion.Motion.set_motion`
 :meth:`~openpibo.motion.Motion.set_mymotion`
+:meth:`~openpibo.motion.Motion.move` (다리가 있는 보드만)
 :meth:`~openpibo.motion.Motion.stop`
 
   파이보의 움직임을 제어합니다.
+
+  ``move(vx, vy)`` 는 **다리로 걷는 동작**이라 다리가 있는 보드에서만 쓸 수 있다.
+  파이브레인에서 호출하면 무엇이 없는지 말하는 예외가 난다.
+  (보드 프로파일의 ``features.has_legs``)
 
   example::
 
@@ -439,7 +446,18 @@ Functions:
     :param float vx: 좌우 방향 (-1.0: 좌 ~ 1.0: 우)
     :param float vy: 전후 방향 (-1.0: 후 ~ 1.0: 전)
     :param int cycle: 동작 반복 횟수
+
+    .. note::
+       다리가 있는 보드 전용이다. 아래 모션 데이터는 다리 관절(인덱스 1, 7)을
+       직접 쓴다. 다리가 없는 보드에서는 뜻이 없는 값이라 막는다.
     """
+
+    if not BOARD.features.has_legs:
+      raise Exception(
+        f'move() 는 다리가 있는 보드에서만 씁니다. '
+        f'지금 보드는 "{BOARD.label}"({BOARD.name}) 입니다.'
+      )
+
     vx = max(-1.0, min(1.0, vx))
     vy = max(-1.0, min(1.0, vy))
 

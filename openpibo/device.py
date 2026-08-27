@@ -1,5 +1,24 @@
 """
-MCU를 제어하여, 부품을 제어합니다.
+보드의 부품(LED, 버튼, 배터리 등)을 제어합니다.
+
+보드마다 제어 경로가 다르다. 어떤 클래스를 쓸지는 :func:`~openpibo.device.get_device`
+에게 맡긴다.
+
+  ====================  ==================================================
+  클래스                 대상
+  ====================  ==================================================
+  :obj:`Device`         **파이보** — MCU(ATmega328P)에 시리얼로 명령을 보낸다.
+                        눈 LED, 배터리, PIR, 터치, 버튼이 전부 MCU 경유다.
+  :obj:`DeviceByPiBrain`  **파이브레인** — MCU 가 없다. GPIO 버튼 4개와
+                        WS2812 1개를 라즈베리파이가 직접 잡는다.
+  ====================  ==================================================
+
+**두 클래스는 API 가 같지 않다.** 파이브레인에는 배터리도 PIR 도 없어서
+``get_battery()`` 같은 것이 아예 없다. 공통 인터페이스를 억지로 만들지 않았다.
+보드에 없는 부품을 있는 척하면 학생 코드가 조용히 틀린 값을 읽게 된다.
+
+Function:
+:func:`~openpibo.device.get_device`
 
 Class:
 :obj:`~openpibo.device.Device`
@@ -14,6 +33,8 @@ import urllib
 
 import RPi.GPIO as GPIO
 from rpi_ws281x import PixelStrip, Color
+
+from .board import BOARD
 
 class Device:
   """
@@ -549,3 +570,30 @@ Functions:
     
     self.strip.setPixelColor(0, Color(0,0,0))
     self.strip.show()
+
+
+def get_device(*args, **kwargs):
+  """
+  **보드 프로파일이 정한 device 클래스**를 만들어 돌려준다.
+
+  example::
+
+    from openpibo.device import get_device
+
+    device = get_device()   # 파이보면 Device, 파이브레인이면 DeviceByPiBrain
+
+  :returns: 보드에 맞는 device 인스턴스
+
+  돌려받는 객체의 메소드가 보드마다 다르다는 점에 주의할 것. 모듈 docstring 참고.
+  """
+
+  name = BOARD.features.device_class
+  cls = globals().get(name)
+
+  if cls is None:
+    raise Exception(
+      f'알 수 없는 features.device_class 값입니다: "{name}" '
+      f'(Device|DeviceByPiBrain) — {BOARD.name} 프로파일을 확인하세요.'
+    )
+
+  return cls(*args, **kwargs)
