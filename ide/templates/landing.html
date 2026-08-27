@@ -479,10 +479,13 @@
 
   <!-- ====== SPINNER ====== -->
   <!-- 전환 실패를 알린다. 스피너만 조용히 사라지면 원인을 알 수 없다. -->
+  <!-- 색·모양을 이 화면의 것에 맞춘다 (#c0392b 는 hdr-btn-power 와 같은 빨강,
+       20px 알약은 이 화면의 버튼과 같은 모양) -->
   <div id="switch_error" style="display:none;position:fixed;left:50%;top:16px;
        transform:translateX(-50%);z-index:9999;max-width:90vw;
-       background:#b00020;color:#fff;padding:12px 18px;border-radius:8px;
-       font-size:14px;line-height:1.5;box-shadow:0 2px 12px rgba(0,0,0,.3);"></div>
+       background:#c0392b;color:#fff;padding:12px 20px;border-radius:20px;
+       font-size:13px;font-weight:700;line-height:1.5;
+       box-shadow:0 6px 20px rgba(0,0,0,.22);"></div>
 
   <div class="spinner-overlay" id="spinner">
     <i class="fa-solid fa-spinner fa-spin"></i>

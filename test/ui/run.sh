@@ -22,6 +22,22 @@ if ! $PY -c "import playwright" 2>/dev/null; then
   exit 0
 fi
 
+# 포트가 이미 쓰이고 있으면 **멈춘다.**
+# 예전 하니스가 남아 있으면 그쪽에 붙어서 옛 코드를 검증하게 되고,
+# 통과했는데 실제로는 아무것도 확인 안 한 상태가 된다. 제일 나쁜 결과다.
+for port in 18080 8080 50000; do
+  if $PY -c "
+import socket, sys
+s = socket.socket()
+s.settimeout(0.4)
+sys.exit(0 if s.connect_ex(('127.0.0.1', $port)) == 0 else 1)
+" 2>/dev/null; then
+    echo "[중단] 포트 $port 가 이미 사용 중입니다. 예전 하니스가 남아 있는지 확인하세요:"
+    echo "       pkill -f 'test/ui/(shell_host|fake_booting|fake_upstream)'"
+    exit 1
+  fi
+done
+
 export OPENPIBO_HOME="${OPENPIBO_HOME:-$ROOT/.tmp-ui}"
 export OPENPIBO_BOARD="${OPENPIBO_BOARD:-pibrain}"
 mkdir -p "$OPENPIBO_HOME"
