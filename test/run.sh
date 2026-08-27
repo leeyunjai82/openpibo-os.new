@@ -25,9 +25,10 @@ run "보드 프로파일" $PY test/test_board.py
 
 if command -v node >/dev/null 2>&1; then
   run "블록 툴박스 보드 필터" node test/js/board_filter.test.js
+  run "프록시 base 경로"      node test/js/proxy_base.test.js
 else
   echo
-  echo "[건너뜀] 툴박스 필터 시험 — node 가 없습니다."
+  echo "[건너뜀] 툴박스 필터 / 프록시 시험 — node 가 없습니다."
 fi
 
 run "파이썬 문법 (전체)" $PY -m compileall -q openpibo system ide classifier tools test

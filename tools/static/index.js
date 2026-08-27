@@ -1,5 +1,15 @@
+// 프록시(/tools/) 아래에서도, 포트로 직접 접속해도 같은 코드가 돌게 한다.
+//
+//   프록시:  허브가 HTML 에 window.__BASE__ = "/tools" 를 심어 준다  (ide/proxy.py)
+//   직접:    __BASE__ 가 없으므로 '' — 예전과 똑같이 동작한다
+//
+// 절대 URL 을 만들 때 반드시 BASE 를 앞에 붙일 것.
+// 안 붙이면 프록시 아래에서 허브 루트로 새어 나간다.
+const BASE = (typeof window !== 'undefined' && window.__BASE__) || '';
+
 window.addEventListener('beforeunload', () => {
-  fetch(`http://${location.hostname}/tools?enable=off`, { keepalive: true}).catch(() => {});
+  // 허브의 토글 주소다. BASE 를 붙이면 안 된다 — 이건 뒤쪽 앱이 아니라 허브 것이다.
+  fetch(`${location.origin}/tools?enable=off`, { keepalive: true}).catch(() => {});
 });
 
 let fullscreen = false;
@@ -134,10 +144,12 @@ async function prompt_popup(message, defaultValue = '') {
 }
 
 document.getElementById("logo_bt").addEventListener("click", function () {
-  location.href = `http://${location.hostname}`;
+  location.href = '/';
 });
 
-const socket = io(`http://${location.host}`, { path: "/socket.io" });
+// 프록시 아래에서는 /tools/socket.io 로 붙어야 한다.
+// BASE 를 안 붙이면 허브 자신의 socket.io 에 연결돼 엉뚱한 서버와 이야기한다.
+const socket = io(location.origin, { path: `${BASE}/socket.io` });
 
 const onoffVal = document.getElementById('onoff_val');
 const onoffCount = document.getElementById('onoff_count');

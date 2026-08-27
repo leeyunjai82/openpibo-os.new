@@ -111,8 +111,10 @@
     });
   }
 
-  setupUploadDrop('drop_zone_audio',  'upload_audio',     '/upload_file/myaudio', 'data');
-  setupUploadDrop('drop_zone_image',  'upload_image',     '/upload_file/myimage', 'data');
+  // 루트 절대 경로를 그대로 쓰면 프록시(/tools/) 아래에서 허브로 올라간다.
+  // BASE 는 index.js 가 window.__BASE__ 에서 만들어 둔 값이다.
+  setupUploadDrop('drop_zone_audio',  'upload_audio',     `${BASE}/upload_file/myaudio`, 'data');
+  setupUploadDrop('drop_zone_image',  'upload_image',     `${BASE}/upload_file/myimage`, 'data');
   setupUploadDrop('drop_zone_motion', 'v_import_motion',  null, null);
   setupUploadDrop('drop_zone_csv',    's_upload_csv',     null, null);
 

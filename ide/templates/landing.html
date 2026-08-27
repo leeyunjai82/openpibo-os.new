@@ -478,6 +478,12 @@
   </div>
 
   <!-- ====== SPINNER ====== -->
+  <!-- 전환 실패를 알린다. 스피너만 조용히 사라지면 원인을 알 수 없다. -->
+  <div id="switch_error" style="display:none;position:fixed;left:50%;top:16px;
+       transform:translateX(-50%);z-index:9999;max-width:90vw;
+       background:#b00020;color:#fff;padding:12px 18px;border-radius:8px;
+       font-size:14px;line-height:1.5;box-shadow:0 2px 12px rgba(0,0,0,.3);"></div>
+
   <div class="spinner-overlay" id="spinner">
     <i class="fa-solid fa-spinner fa-spin"></i>
     <span id="spinner_msg">서비스 시작 중...</span>
@@ -567,28 +573,103 @@
     }
 
     // ── Cards ────────────────────────────────────────────────
+    //
+    // 예전에는 이랬다:
+    //
+    //   fetch('/tools?enable=on')
+    //     .then(() => setTimeout(() => window.open('http://ip:50000'), 3000))
+    //
+    // 3초는 근거 없는 추측이었고, 새 창이라 세션도 뒤로가기도 끊겼다.
+    // 이제 전부 같은 origin 안에서 움직인다. 전환 지연은 숨기지 않고
+    // 몇 초가 걸리는지 그대로 보여준다.
+    // (docs/plan/00-decisions.md 5.1)
+
+    let switching = null;   // 진행 중인 EventSource
+
+    // landing.html 은 index.js 를 읽지 않는다. 거기 있는 alert_popup 을 못 쓴다.
+    // 전환에 실패했을 때 스피너만 조용히 사라지면 무슨 일인지 알 수 없으므로
+    // 여기서 최소한의 알림을 만든다.
+    function switchError(msg) {
+      hideSpinner();
+      const box = document.getElementById('switch_error');
+      if (box) {
+        box.textContent = msg;
+        box.style.display = 'block';
+        setTimeout(() => { box.style.display = 'none'; }, 8000);
+      } else {
+        alert(msg);
+      }
+    }
+
+    const PHASE_TEXT = {
+      starting: '서비스를 시작하는 중',
+      active:   '거의 다 됐어요',
+      ready:    '준비 끝!',
+    };
+
+    function goToService(name, label) {
+      if (switching) { switching.close(); switching = null; }
+      showSpinner(`${label} 시작 중...`);
+
+      fetch(`/api/service/${name}/start`, { method: 'POST' })
+        .then(() => {
+          // 진행 상태를 서버가 흘려보낸다.
+          //   starting -> active(유닛이 떴다) -> ready(포트가 응답한다)
+          // systemctl is-active 는 uvicorn 이 포트를 잡기 전에 이미 active 다.
+          // 그래서 ready 를 받았을 때만 넘어간다.
+          switching = new EventSource(`/api/service/${name}/events`);
+
+          switching.onmessage = (e) => {
+            let d;
+            try { d = JSON.parse(e.data); } catch (_) { return; }
+
+            if (d.phase === 'ready') {
+              switching.close(); switching = null;
+              showSpinner(`${label} 준비 끝!`);
+              // 새 창이 아니라 같은 창에서 이동한다. 뒤로가기가 살아난다.
+              location.href = d.path;
+              return;
+            }
+
+            if (d.phase === 'failed' || d.phase === 'timeout') {
+              switching.close(); switching = null;
+              hideSpinner();
+              switchError(`${label} 를 시작하지 못했습니다. ${d.reason || ''}`);
+              return;
+            }
+
+            const base = PHASE_TEXT[d.phase] || '시작하는 중';
+            showSpinner(`${label} — ${base} (${d.elapsed}초)`);
+          };
+
+          switching.onerror = () => {
+            if (!switching) return;
+            switching.close(); switching = null;
+            hideSpinner();
+            switchError(`${label} 상태를 받지 못했습니다. 잠시 후 다시 해보세요.`);
+          };
+        })
+        .catch((err) => {
+          hideSpinner();
+          switchError(`${label} 시작 요청이 실패했습니다: ${err.message}`);
+        });
+    }
+
     document.getElementById('card_ide').addEventListener('click', () => {
-      window.open(`http://${location.hostname}/ide`);
+      location.href = '/ide';
     });
     document.getElementById('card_tools').addEventListener('click', () => {
-      showSpinner('Tools 시작 중...');
-      fetch(`http://${location.hostname}/tools?enable=on`)
-        .then(() => setTimeout(() => { hideSpinner(); window.open(`http://${location.hostname}:50000`); }, 3000))
-        .catch(() => hideSpinner());
+      goToService('tools', 'Tools');
     });
     document.getElementById('card_cls').addEventListener('click', () => {
-      showSpinner('Classifier 시작 중...');
-      fetch(`http://${location.hostname}/classifier?enable=on`)
-        .then(() => setTimeout(() => { hideSpinner(); window.open(`http://${location.hostname}:50010`); }, 3000))
-        .catch(() => hideSpinner());
+      goToService('classify', 'Classifier');
     });
     document.getElementById('card_llm').addEventListener('click', () => {
-      showSpinner('Chat Bot 시작 중...');
-      fetch(`http://${location.hostname}/llm?enable=on`)
-        .then(() => setTimeout(() => { hideSpinner(); window.open(`http://${location.hostname}:50020`); }, 3000))
-        .catch(() => hideSpinner());
+      goToService('llm', 'Chat Bot');
     });
     document.getElementById('card_guide').addEventListener('click', () => {
+      // 안내 문서는 booting.py(:8080)가 서비스한다. 아직 프록시 대상이 아니다 —
+      // 뒤쪽 셋과 달리 상시 떠 있고 자원을 다투지 않는다.
       window.open(`http://${location.hostname}:${SYSTEM_PORT}`);
     });
 

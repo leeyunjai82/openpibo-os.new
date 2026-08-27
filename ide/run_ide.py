@@ -9,21 +9,32 @@ import requests
 from pathlib import Path
 from typing import List, Union
 
-from fastapi import FastAPI, Request, UploadFile, File, Form, Body, Depends
-from fastapi.responses import HTMLResponse, FileResponse, JSONResponse, RedirectResponse
+from fastapi import FastAPI, Request, UploadFile, File, Form, Body, Depends, WebSocket
+from fastapi.responses import HTMLResponse, FileResponse, JSONResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi_socketio import SocketManager
 from starlette.websockets import WebSocketDisconnect
 from fastapi.templating import Jinja2Templates
 from contextlib import asynccontextmanager
 
+import httpx
+
 from openpibo.board import BOARD
+
+import proxy
+import services
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
   asyncio.create_task(periodic_system_update())
-  yield
+  # 중계용 클라이언트 한 벌을 오래 들고 쓴다. 요청마다 새로 만들면
+  # 연결을 매번 새로 여느라 전환이 더 느려진다.
+  # timeout=None: SSE 와 MJPEG 는 원래 안 끊기는 응답이다.
+  app.state.http = httpx.AsyncClient(timeout=None, follow_redirects=False)
+  try:
+    yield
+  finally:
+    await app.state.http.aclose()
 
 try:
   app = FastAPI(lifespan=lifespan)
@@ -36,13 +47,13 @@ try:
 except Exception as ex:
   print(f'Server error{ex}')
 
-app.add_middleware(
-  CORSMiddleware,
-  allow_origins=["*"],
-  allow_credentials=True,
-  allow_methods=["*"],
-  allow_headers=["*"],
-)
+# CORS 미들웨어를 뺀다.
+#
+# 1) 뒤쪽 서비스가 전부 /tools /classify /llm 로 같은 origin 아래 들어왔다.
+#    교차 출처 요청 자체가 없어졌다.
+# 2) 원래 설정이 스펙상 무효였다 — allow_origins=["*"] 와 allow_credentials=True 는
+#    같이 못 쓴다. 브라우저가 거부한다. 즉 지금까지도 실제로 동작하지 않았다.
+#    (docs/plan/04-known-issues.md 8)
 
 codeExec = {
   'python': 'python3',
@@ -256,41 +267,102 @@ async def handle_init(sid):
     codeText = ''
   await app.sio.emit('init', {'codepath': codePath, 'codetext': codeText, 'path': PATH})
 
+# ── 뒤쪽 서비스 제어 ──────────────────────────────────────────
+#
+# 예전 /tools?enable=on, /classifier?enable=on, /llm?enable=on 을 그대로 둔다.
+# 기존 화면과 학생 코드가 이 주소를 쓰고 있다. 다만 안에서 하는 일이 달라졌다:
+# 배타 서비스 정리를 services.start() 가 맡고, **여기서 기다리지 않는다.**
+# 언제 다 떴는지는 /api/service/{name}/events 가 알려준다.
+
+def _toggle(name, enable):
+  # enable 이 없으면 켜고 끄라는 게 아니라 그 서비스 화면으로 가겠다는 뜻이다.
+  # /tools 와 /llm 은 토글 주소이면서 동시에 프록시 앞머리라, 이 구분이 필요하다.
+  # (이 라우트가 아래 catch-all 보다 먼저 등록되므로 여기서 갈라야 한다)
+  if enable is None:
+    return RedirectResponse(url=f'/{name}/', status_code=307)
+  if enable == 'on':
+    services.start(name)
+  elif enable == 'off':
+    services.stop(name)
+  return HTMLResponse(content='', status_code=200)
+
+
 @app.get('/tools')
-async def toggle_tools(enable: str):
-  print("Eanable tools:", enable)
-  if enable == "on":
-    subprocess.Popen(['systemctl', 'stop', 'classify.service'])
-    subprocess.Popen(['systemctl', 'stop', 'llama-server.service'])
-    subprocess.Popen(['systemctl', 'start', 'tools.service'])
-  elif enable == "off":
-    subprocess.Popen(['systemctl', 'stop', 'tools.service'])
-  await asyncio.sleep(2)    
-  return HTMLResponse(content="", status_code=200)
+async def toggle_tools(enable: str = None):
+  return _toggle('tools', enable)
+
 
 @app.get('/classifier')
-async def toggle_classifier(enable: str):
-  print("Eanable classifier:", enable)
-  if enable == "on":
-    subprocess.Popen(['systemctl', 'stop', 'tools.service'])
-    subprocess.Popen(['systemctl', 'stop', 'llama-server.service'])
-    subprocess.Popen(['systemctl', 'start', 'classify.service'])
-  elif enable == "off":
-    subprocess.Popen(['systemctl', 'stop', 'classify.service'])
-  await asyncio.sleep(2)    
-  return HTMLResponse(content="", status_code=200)
+async def toggle_classifier(enable: str = None):
+  # 앞머리는 /classify 인데 토글 주소는 /classifier 다. 기존 화면과 학생 코드가
+  # 이 주소를 쓰고 있어 그대로 둔다. 겹치지 않으므로 문제되지 않는다.
+  return _toggle('classify', enable)
+
 
 @app.get('/llm')
-async def toggle_llm(enable: str):
-  print("Eanable llm:", enable)
-  if enable == "on":
-    subprocess.Popen(['systemctl', 'stop', 'tools.service'])
-    subprocess.Popen(['systemctl', 'stop', 'classify.service'])
-    subprocess.Popen(['systemctl', 'start', 'llama-server.service'])
-  elif enable == "off":
-    subprocess.Popen(['systemctl', 'stop', 'llama-server.service'])
-  await asyncio.sleep(2)
-  return HTMLResponse(content="", status_code=200)
+async def toggle_llm(enable: str = None):
+  return _toggle('llm', enable)
+
+
+@app.get('/api/service')
+async def list_services():
+  """뒤쪽 서비스 셋의 현재 상태."""
+
+  return JSONResponse(content={
+    n: await services.status(n) for n in proxy.UPSTREAMS
+  }, status_code=200)
+
+
+@app.get('/api/service/{name}')
+async def read_service(name: str):
+  if name not in proxy.UPSTREAMS:
+    return JSONResponse(content={'error': f'알 수 없는 서비스: {name}'}, status_code=404)
+  return JSONResponse(content=await services.status(name), status_code=200)
+
+
+@app.post('/api/service/{name}/start')
+async def start_service(name: str):
+  """
+  켜기만 하고 바로 돌아온다. 뜰 때까지 기다리는 것은 /events 가 한다.
+
+  이렇게 나눈 이유: 요청 하나를 수십 초 붙잡고 있으면 그 사이 화면이
+  아무것도 못 한다. 진행 상태를 보여줄 수가 없다.
+  """
+
+  if name not in proxy.UPSTREAMS:
+    return JSONResponse(content={'error': f'알 수 없는 서비스: {name}'}, status_code=404)
+  services.start(name)
+  return JSONResponse(content=await services.status(name), status_code=202)
+
+
+@app.post('/api/service/{name}/stop')
+async def stop_service(name: str):
+  if name not in proxy.UPSTREAMS:
+    return JSONResponse(content={'error': f'알 수 없는 서비스: {name}'}, status_code=404)
+  services.stop(name)
+  return JSONResponse(content={'name': name, 'stopped': True}, status_code=200)
+
+
+@app.get('/api/service/{name}/events')
+async def watch_service(name: str):
+  """
+  뜰 때까지의 진행 상태를 SSE 로 흘려보낸다.
+
+    starting -> active(유닛이 떴다) -> ready(포트가 응답한다)
+
+  `systemctl is-active` 는 uvicorn 이 포트를 잡기 전에 이미 active 를 준다.
+  그래서 active 와 ready 를 나눠 본다. 화면은 ready 에서 넘어간다.
+  """
+
+  if name not in proxy.UPSTREAMS:
+    return JSONResponse(content={'error': f'알 수 없는 서비스: {name}'}, status_code=404)
+
+  return StreamingResponse(
+    services.watch(name),
+    media_type='text/event-stream',
+    headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'},
+  )
+
 
 @app.sio.on('init_lcd')
 async def handle_init_lcd(sid):
@@ -608,6 +680,51 @@ async def periodic_system_update():
 #@app.on_event('startup')
 #async def on_startup():
 #  asyncio.create_task(periodic_system_update())
+
+
+# ── 리버스 프록시 ─────────────────────────────────────────────
+#
+# **반드시 파일 맨 아래에 둔다.** FastAPI 는 등록 순서로 라우트를 찾는다.
+# 이 catch-all 이 위에 있으면 /tools?enable=on 같은 허브 자기 라우트를 삼킨다.
+#
+#   /tools/*     -> 127.0.0.1:50000
+#   /classify/*  -> 127.0.0.1:50010
+#   /llm/*       -> 127.0.0.1:50020
+#
+# 뒤쪽 앱을 하나도 안 고치고 origin 만 합치는 것이 목적이다.
+# 자산 경로 보정과 window.__BASE__ 주입은 proxy.py 가 한다.
+
+@app.websocket('/{name}/{path:path}')
+async def proxy_ws(websocket: WebSocket, name: str, path: str):
+  """tools 의 socket.io 가 여기를 탄다."""
+
+  if name not in proxy.UPSTREAMS:
+    await websocket.close(code=1008)
+    return
+  await proxy.proxy_websocket(websocket, name, '/' + path)
+
+
+@app.api_route('/{name}/{path:path}',
+               methods=['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'])
+async def proxy_any(request: Request, name: str, path: str):
+  if name not in proxy.UPSTREAMS:
+    return JSONResponse(content={'error': '없는 경로입니다.'}, status_code=404)
+  return await proxy.proxy_http(request, name, '/' + path, app.state.http)
+
+
+@app.get('/{name}')
+async def proxy_root(request: Request, name: str):
+  """
+  /tools -> /tools/ 로 넘긴다.
+
+  끝의 슬래시가 없으면 브라우저가 상대 경로를 루트 기준으로 풀어서
+  자산을 전부 놓친다.
+  """
+
+  if name not in proxy.UPSTREAMS:
+    return JSONResponse(content={'error': '없는 경로입니다.'}, status_code=404)
+  return RedirectResponse(url=f'/{name}/', status_code=307)
+
 
 if __name__ == '__main__':
   import argparse

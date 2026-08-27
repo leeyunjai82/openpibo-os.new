@@ -1,3 +1,12 @@
+// 프록시(/classify/) 아래에서도, 포트로 직접 접속해도 같은 코드가 돌게 한다.
+//
+//   프록시:  허브가 HTML 에 window.__BASE__ = "/classify" 를 심어 준다  (ide/proxy.py)
+//   직접:    __BASE__ 가 없으므로 '' — 예전과 똑같이 동작한다
+//
+// 절대 URL 을 만들 때 반드시 BASE 를 앞에 붙일 것.
+// 안 붙이면 프록시 아래에서 허브 루트로 새어 나간다.
+const BASE = (typeof window !== 'undefined' && window.__BASE__) || '';
+
 let fullscreen = false;
 
 const fullscreenTxt = document.getElementById('fullscreen_txt');
@@ -122,7 +131,7 @@ async function prompt_popup(message, defaultValue = '') {
 }
 
 document.getElementById("logo_bt").addEventListener("click", () => {
-    location.href = `http://${location.hostname}`;
+    location.href = '/';
 });
 
 // --- SSE 카메라 스트림 (Socket.IO 대체) ---
@@ -131,7 +140,7 @@ let cameraEnabled = false;
 
 function startCameraStream() {
     if (evtSource) return; // 이미 연결 중
-    evtSource = new EventSource(`http://${location.host}/camera_stream`);
+    evtSource = new EventSource(`${location.origin}${BASE}/camera_stream`);
     evtSource.onmessage = (e) => {
         document.getElementById('camera').src = "data:image/jpeg;base64," + e.data;
     };
@@ -153,15 +162,15 @@ function stopCameraStream() {
 }
 
 // 초기: 카메라 OFF
-fetch(`http://${location.host}/control_cam?d=off`);
+fetch(`${location.origin}${BASE}/control_cam?d=off`);
 
 function toggleCamera() {
     if (cameraEnabled) {
-        fetch(`http://${location.host}/control_cam?d=off`);
+        fetch(`${location.origin}${BASE}/control_cam?d=off`);
         stopCameraStream();
         cameraEnabled = false;
     } else {
-        fetch(`http://${location.host}/control_cam?d=on`).then(() => {
+        fetch(`${location.origin}${BASE}/control_cam?d=on`).then(() => {
             startCameraStream();
         });
         cameraEnabled = true;
@@ -467,7 +476,7 @@ async function exportConvertedModelAsZipAndConvert() {
         const trainedModelBlob = await zip.generateAsync({ type: 'blob' });
         const formData = new FormData();
         formData.append("tfjs_zip", trainedModelBlob, "trained-model.zip");
-        const response = await fetch(`http://${location.host}/convert`, { method: 'POST', body: formData });
+        const response = await fetch(`${location.origin}${BASE}/convert`, { method: 'POST', body: formData });
         if (!response.ok) {
             await alert_popup(`모델 변환 요청 실패: ${await response.text()}`);
             return;
@@ -492,5 +501,6 @@ async function exportConvertedModelAsZipAndConvert() {
 
 window.addEventListener('beforeunload', () => {
     stopCameraStream();
-    fetch(`http://${location.hostname}/classifier?enable=off`, { keepalive: true}).catch(() => {});
+    // 허브의 토글 주소다. BASE 를 붙이면 안 된다.
+    fetch(`${location.origin}/classifier?enable=off`, { keepalive: true}).catch(() => {});
 });

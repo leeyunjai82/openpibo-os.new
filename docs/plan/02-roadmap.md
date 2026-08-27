@@ -11,7 +11,7 @@
 
 ```
 0. 레포 통합 + board.py 프로파일        ← 코드 작업 완료. 실기 확인 남음
-1. 리버스 프록시 + 헬스체크
+1. 리버스 프록시 + 헬스체크             ← 코드 작업 완료. 실기 확인 남음
 2. SPA shell + 설정 모달
 3. yolo11s / yolo11s-pose 전환
 4. 5모드 학습 이식
@@ -154,23 +154,51 @@ from openpibo.vision_camera import Camera; c = Camera(); print(c.read().shape)
 
 ---
 
-## 1. 리버스 프록시 + 헬스체크
+## 1. 리버스 프록시 + 헬스체크 — **코드 완료 / 실기 미확인**
 
 ### 선행 조건
 - 0단계 완료
 
 ### 작업
 
-1. 허브(`run_ide.py` 확장)에 프록시 라우트 추가
+1. ~~허브에 프록시 라우트 추가~~ **완료** — `ide/proxy.py`
    ```
    /tools/*     → 127.0.0.1:50000
    /classify/*  → 127.0.0.1:50010
    /llm/*       → 127.0.0.1:50020
    ```
-2. `/api/system/*` 정리 — wifi, 정보, 전원, 로그
-3. **3초 blind sleep 제거** → `systemctl is-active` 폴링으로 대체
-4. 전환 진행 상태를 SSE 또는 소켓으로 프론트에 전달
-5. CORS 미들웨어 제거 (단일 origin이 되므로 불필요)
+   HTTP, SSE/MJPEG 스트리밍, WebSocket(socket.io) 전부 중계한다.
+2. `/api/system/*` 정리 — **안 했다.** 기존 socket.io 이벤트로 돌고 있고,
+   2단계 SPA shell 에서 설정 모달과 함께 손대는 것이 맞다. 지금 옮기면 두 번 만든다.
+3. ~~**3초 blind sleep 제거**~~ **완료** — 다만 `systemctl is-active` 폴링만으로는
+   부족했다. `is-active` 는 **uvicorn 이 포트를 잡기 전에 이미 active 를 돌려준다.**
+   그래서 두 단계로 나눴다: `active`(유닛이 떴다) → `ready`(포트가 응답한다).
+   화면은 `ready` 에서만 넘어간다.
+4. ~~전환 진행 상태를 SSE 로 전달~~ **완료** — `/api/service/{name}/events`
+5. ~~CORS 미들웨어 제거~~ **완료** — 덤으로, 원래 설정이 스펙상 무효였다
+   (`allow_origins=["*"]` + `allow_credentials=True`). 즉 지금까지도 실제로
+   동작하지 않았다 (`04-known-issues.md` 8).
+
+### 프록시가 손봐야 했던 것 (계획에 없던 부분)
+
+경로 앞머리로 중계하면 뒤쪽 앱의 URL 이 전부 어긋난다. 두 가지를 해결했다.
+
+- **자산 경로.** 뒤쪽 템플릿이 `../static/...` 을 쓴다. `/tools/` 아래에서는
+  브라우저가 허브의 `/static/` 을 찾아간다. → HTML 을 지나갈 때 `/tools/static/` 으로 고친다.
+- **JS 안의 절대 URL.** `fetch(\`http://${location.host}/control_cam\`)` 같은 것들이
+  허브 루트로 샌다. → 허브가 HTML 에 `window.__BASE__` 를 심고, 앱 JS 가 그걸 앞에 붙인다.
+  포트로 직접 접속하면 `__BASE__` 가 없어 `''` 가 되므로 예전 그대로 동작한다.
+
+  특히 `tools` 의 socket.io 는 `path: "/socket.io"` 로 고정돼 있었다. 그대로 두면
+  **허브 자신의 socket.io 에 붙어 엉뚱한 서버와 이야기한다.**
+
+### 완료 기준
+
+- [x] 브라우저 주소가 `http://<ip>/` 하나로 유지
+- [x] 새 창이 뜨지 않음 (안내 문서 `:8080` 만 예외로 남김 — 자원을 다투지 않는다)
+- [x] 뒤로가기 동작 (`location.href` 로 같은 창 이동)
+- [x] 전환 중 진행 상태가 화면에 보임 (몇 초 걸리는지 초 단위로)
+- [ ] **기기에서 실제로 세 서비스가 프록시 너머로 동작** — 남음
 
 ### 주의
 
@@ -178,6 +206,7 @@ from openpibo.vision_camera import Camera; c = Camera(); print(c.read().shape)
 - `call_llm()`의 `http://0.0.0.0:50020`은 잘못된 주소 →
   `127.0.0.1`로 (`04-known-issues.md`)
 - 프로세스 통합이 아니다. **여전히 systemd가 서로를 죽인다**
+  (`services.EXCLUSIVE` 가 하나를 켤 때 나머지를 끈다. 유닛의 `Conflicts=` 와 이중으로)
 
 ### 완료 기준
 
