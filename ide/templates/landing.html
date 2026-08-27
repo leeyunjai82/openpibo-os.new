@@ -394,7 +394,7 @@
             <div class="si-label">가동 시간</div>
             <div class="si-value" id="si_runtime">-</div>
           </div>
-          <div class="si-item">
+          <div class="si-item" id="si_battery_row">
             <div class="si-label">배터리</div>
             <div class="si-value" id="si_battery">-</div>
           </div>
@@ -508,6 +508,18 @@
       document.getElementById('hdr_network').innerHTML =
         `<i class="fas fa-network-wired"></i> ${ethIp}&nbsp;&nbsp;<i class="fa-solid fa-wifi"></i> ${wifiSsid}`;
     });
+
+    // 배터리와 충전 감지는 MCU 경유다. MCU 가 없는 보드(파이브레인)에는
+    // 배터리 자체가 없어서 서버가 값을 보내지 않는다. 배지를 숨긴다.
+    // 없는 것을 "-" 나 0% 로 두면 고장으로 읽힌다.
+    (function hideBatteryIfNoMcu() {
+      var f = (window.__BOARD__ || {}).features;
+      if (!f || f.has_mcu) return;
+      ['ft_battery', 'ft_dc', 'si_battery_row'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+      });
+    })();
 
     socket.on('update_battery', (data) => {
       const bat = Number(data.split('%')[0]);

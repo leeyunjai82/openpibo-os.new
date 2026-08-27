@@ -12,6 +12,7 @@ from fastapi.responses import FileResponse, JSONResponse, StreamingResponse # Re
 from fastapi.middleware.cors import CORSMiddleware
 
 # --- OpenPibo Hardware Imports ---
+from openpibo.board import BOARD
 from openpibo.oled import get_display
 from openpibo.audio import Audio
 from openpibo.motion import Motion
@@ -237,7 +238,8 @@ async def halt_system():
     """Shuts down the Raspberry Pi."""
     oled_obj.draw_text((10, 25), "Shutting down...")
     oled_obj.show()
-    os.system('echo "#11:!" > /dev/ttyS0')
+    if BOARD.features.has_mcu:      # MCU 가 없는 보드에는 /dev/ttyS0 이 없다
+        os.system('echo "#11:!" > /dev/ttyS0')
     os.system('sudo shutdown -h now &')
     return {"message": "System is shutting down."}
 

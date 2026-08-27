@@ -60,6 +60,27 @@ BOARD_INFO = {
   'camera': {'width': BOARD.camera.width, 'height': BOARD.camera.height},
 }
 
+def servo_init():
+  """서보(다리) 초기화. 다리가 없는 보드에는 servo 데몬 자체가 없다."""
+
+  if BOARD.features.has_legs:
+    subprocess.Popen(['servo', 'init'])
+
+
+def mcu_halt():
+  """
+  MCU 에 전원 차단을 알린다. MCU 가 없는 보드에서는 할 일이 없다.
+
+  .. note::
+     /dev/ttyS0 에 직접 쓴다. 평소 device 명령은 booting.py 의 시리얼 프록시
+     (127.0.0.1:8080/device/...)를 거치는데, 여기만 직접 쓴다.
+     종료 직전이라 프록시가 이미 내려갔을 수 있어서다. 원래 동작 그대로 뒀다.
+  """
+
+  if BOARD.features.has_mcu:
+    os.system('echo "#11:!" > /dev/ttyS0')
+
+
 protectList = [
   '/home/pi/openpibo-',
   '/home/pi/node_modules',
@@ -281,12 +302,12 @@ async def handle_reset_log(sid):
   global record
   record = f'[{datetime.datetime.now()}]: \n\n'
   subprocess.Popen([f'{ENV_PATH}/python3', '/home/pi/openpibo-os/system/network_disp.py'])
-  subprocess.Popen(['servo', 'init'])
+  servo_init()
 
 
 @app.sio.on('poweroff')
 async def handle_poweroff(sid):
-  os.system('echo "#11:!" > /dev/ttyS0')
+  mcu_halt()
   subprocess.Popen(['shutdown', '-h', 'now'])
 
 @app.sio.on('restart')
@@ -394,10 +415,13 @@ async def handle_restore(sid):
         os.system("rm -rf /home/pi/myimage/*")
         os.system("rm -rf /home/pi/mymodel/*")
         os.system("rm -rf /home/pi/myaudio/*")
+        # 예제는 보드별로 나뉘어 있다 (examples/pibo, examples/pibrain).
+        # examples/* 를 그대로 복사하면 폴더 두 개가 통째로 들어간다.
+        os.makedirs('/home/pi/examples', exist_ok=True)
         os.system("rm -rf /home/pi/examples/*")
-        os.system("cp -rf /home/pi/openpibo-os/examples/* /home/pi/examples/")
+        os.system(f"cp -rf /home/pi/openpibo-os/examples/{BOARD.name}/* /home/pi/examples/")
         os.system("sudo /home/pi/openpibo-os/system/conwifi.sh wpa-psk 'pibo' '!pibo0314'")
-        os.system('echo "#11:!" > /dev/ttyS0')
+        mcu_halt()
         subprocess.Popen(['shutdown', '-h', 'now'])
     except Exception as e:
         # sio 는 정의되지 않은 이름이었다. 초기화가 실패하면 에러 메시지 대신
@@ -544,7 +568,7 @@ async def handle_stop(sid):
   global ps
   subprocess.Popen(['pkill', 'play'])
   subprocess.Popen(['pkill', 'llama-server'])
-  subprocess.Popen(['servo', 'init'])
+  servo_init()
   if ps and ps.returncode is None:
     ps.kill()
     await ps.wait()
@@ -565,15 +589,19 @@ async def periodic_system_update():
     except Exception as err:
       await app.sio.emit('update', {'dialog': '초기화: 시스템 파일 오류입니다.'})
 
-    try:
-      await app.sio.emit('update_battery', requests.get('http://127.0.0.1:8080/device/%2315%3A%21').json().split(':')[1])
-    except Exception as err:
-      await app.sio.emit('update_battery', '0%')
+    # 배터리와 충전 감지는 MCU 경유다. MCU 가 없는 보드에는 배터리 자체가 없다.
+    # 없는 것을 0% 로 보여주면 "다 됐다"로 읽힌다. 아예 보내지 않고,
+    # 프론트가 __BOARD__ 를 보고 배지를 숨긴다.
+    if BOARD.features.has_mcu:
+      try:
+        await app.sio.emit('update_battery', requests.get('http://127.0.0.1:8080/device/%2315%3A%21').json().split(':')[1])
+      except Exception as err:
+        await app.sio.emit('update_battery', '0%')
 
-    try:
-      await app.sio.emit('update_dc', requests.get('http://127.0.0.1:8080/device/%2314%3A%21').json().split(':')[1])
-    except Exception as err:
-      await app.sio.emit('update_dc', 'off')
+      try:
+        await app.sio.emit('update_dc', requests.get('http://127.0.0.1:8080/device/%2314%3A%21').json().split(':')[1])
+      except Exception as err:
+        await app.sio.emit('update_dc', 'off')
 
     await asyncio.sleep(10)
 

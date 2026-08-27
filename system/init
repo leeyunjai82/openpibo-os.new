@@ -37,6 +37,7 @@ mkdir -p /home/pi/code
 mkdir -p /home/pi/myimage
 mkdir -p /home/pi/myaudio
 mkdir -p /home/pi/mymodel
+mkdir -p /home/pi/examples   # IDE 초기화가 여기로 예제를 복사한다
 
 # board profile
 # 없다고 부팅을 막지는 않는다. 현장에 이미 나가 있는 파이보는 이 파일이 없고,

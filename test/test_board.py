@@ -10,6 +10,8 @@
   - display.driver 가 oled.DRIVERS 에 있는 값인지
   - features.device_class 가 device.py 에 실제로 있는 클래스 이름인지
   - unverified 값을 require() 로 꺼내면 멈추는지
+  - examples/<board>/ 가 있고, 코드가 그 경로로 복사하는지
+  - 서버 코드에 보드 하드코딩이 새로 들어오지 않았는지
 """
 
 import os
@@ -84,7 +86,35 @@ for n, p in profiles.items():
          if not set(re.findall(r'\{(\w+)\}', l['text'])) <= {'sn', 'ip', 'ssid', 'os_version'}]
   check(f'{n}: network_disp 가 아는 값만 씀', not bad, '; '.join(bad))
 
-# 4. 확인 안 된 값은 조용히 통과하지 않아야 한다
+# 4. 예제 폴더 — examples/ 를 보드별로 나눈 뒤 복사 경로를 안 고치면
+#    /home/pi/examples/ 안에 pibo/ pibrain/ 폴더 두 개가 들어간다.
+print()
+run_ide = open(os.path.join(ROOT, 'ide/run_ide.py'), encoding='utf-8').read()
+for n in BOARDS:
+  d = os.path.join(ROOT, 'examples', n)
+  jsons = [f for f in os.listdir(d) if f.endswith('.json')] if os.path.isdir(d) else []
+  check(f'{n}: examples/{n}/ 에 예제가 있음', bool(jsons), f'{len(jsons)}개')
+
+check('run_ide 가 examples/<board>/ 로 복사',
+      'examples/{BOARD.name}/' in run_ide,
+      '보드 없이 examples/* 를 복사하면 폴더째 들어간다')
+
+# 5. 서버 코드에 보드 하드코딩이 새로 들어오지 않았는지.
+#    servo / ttyS0 는 반드시 플래그 뒤에 있어야 한다.
+HARDCODE = {
+  'ide/run_ide.py': [
+    (r"subprocess\.Popen\(\['servo'", 'servo_init() 를 쓸 것'),
+    (r"echo \"#11:!\" > /dev/ttyS0", 'mcu_halt() 를 쓸 것'),
+  ],
+}
+for path, pats in HARDCODE.items():
+  src = open(os.path.join(ROOT, path), encoding='utf-8').read()
+  for pat, hint in pats:
+    # 헬퍼 함수 안의 1건은 정상이다. 그 밖에서 쓰이면 잡는다.
+    hits = len(re.findall(pat, src))
+    check(f'{path}: 보드 하드코딩이 헬퍼 밖에 없음 ({hint})', hits <= 1, f'{hits}건')
+
+# 6. 확인 안 된 값은 조용히 통과하지 않아야 한다
 print()
 for n, p in profiles.items():
   try:
