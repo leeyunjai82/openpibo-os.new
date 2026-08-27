@@ -1,6 +1,7 @@
 [Unit]
 Description=openpibo tools (port 50000)
-# launch.py 가 보드를 보고 tools/ (파이보) 또는 tools/pibrain/ 을 고른다.
+# launch.py 가 보드를 보고 tools/pibo/ 또는 tools/pibrain/ 을 고른다.
+# (작업 폴더는 launch.py 가 그 안으로 다시 옮긴다)
 After=network.target
 Wants=network.target
 

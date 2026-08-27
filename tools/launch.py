@@ -13,6 +13,9 @@ tools 서비스 진입점 — 보드에 맞는 tools 앱을 띄운다.
   파이브레인에 파이보 화면을 띄우면 "모션" 탭 전체가 죽은 화면이 된다.
   그래서 하나로 억지로 합치지 않고, 보드가 자기 앱을 고른다.
 
+    tools/pibo/      run_tools.py   socket.io    :50000
+    tools/pibrain/   run_tools.py   REST + SSE   :50000
+
   두 앱 모두 ``run_tools:app`` 을 uvicorn 으로 띄우는 같은 모양이고,
   각자 자기 폴더의 ``static/``, ``templates/`` 를 상대 경로로 연다.
   그래서 고르는 일은 **작업 폴더를 정하는 것**이 전부다.
@@ -29,15 +32,19 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 #: 보드 이름 -> tools 앱이 있는 폴더 (HERE 기준)
+#: 두 앱은 같은 깊이에 나란히 둔다. 한쪽만 tools/ 바로 밑에 있으면
+#: "파이보가 본체고 파이브레인은 곁가지"처럼 읽힌다 — 둘은 대등하다.
 APP_DIR = {
-  'pibo':    HERE,
+  'pibo':    os.path.join(HERE, 'pibo'),
   'pibrain': os.path.join(HERE, 'pibrain'),
 }
+
+DEFAULT_BOARD = 'pibo'
 
 
 def app_dir_for(board_name):
   """보드에 맞는 폴더. 모르는 보드면 파이보 것으로 간다(예전 그대로)."""
-  return APP_DIR.get(board_name, HERE)
+  return APP_DIR.get(board_name, APP_DIR[DEFAULT_BOARD])
 
 
 def main():

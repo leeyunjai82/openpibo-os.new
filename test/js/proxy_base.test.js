@@ -24,8 +24,8 @@ function check(label, ok, detail) {
 
 // ── 1. 하드코딩된 절대 URL 이 남아 있으면 안 된다 ──────────────
 const APP_JS = [
-  'tools/static/index.js',
-  'tools/static/tools_extra.js',
+  'tools/pibo/static/index.js',
+  'tools/pibo/static/tools_extra.js',
   'classifier/static/index.js',
   'classifier/static/classifier_extra.js',
 ];
@@ -67,13 +67,13 @@ for (const [base, expr, want] of CASES) {
 
 // ── 3. BASE 정의가 먼저 로드되는지 ─────────────────────────────
 console.log();
-const toolsHtml = fs.readFileSync(path.join(ROOT, 'tools/templates/index.html'), 'utf8');
+const toolsHtml = fs.readFileSync(path.join(ROOT, 'tools/pibo/templates/index.html'), 'utf8');
 const iIndex = toolsHtml.indexOf('static/index.js');
 const iExtra = toolsHtml.indexOf('static/tools_extra.js');
 check('tools: index.js 가 tools_extra.js 보다 먼저 로드',
       iIndex !== -1 && iExtra !== -1 && iIndex < iExtra);
-check('tools/static/index.js 가 BASE 를 정의',
-      /const BASE\s*=/.test(fs.readFileSync(path.join(ROOT, 'tools/static/index.js'), 'utf8')));
+check('tools/pibo/static/index.js 가 BASE 를 정의',
+      /const BASE\s*=/.test(fs.readFileSync(path.join(ROOT, 'tools/pibo/static/index.js'), 'utf8')));
 check('classifier/static/index.js 가 BASE 를 정의',
       /const BASE\s*=/.test(fs.readFileSync(path.join(ROOT, 'classifier/static/index.js'), 'utf8')));
 

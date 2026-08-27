@@ -41,7 +41,7 @@ run "파이썬 문법 (전체)" $PY -m compileall -q openpibo system ide classif
 echo
 echo "── theme.css 복사본 동일성 ──"
 # 원본은 ide/static/theme.css. 앱별 복사본이 어긋나면 심리스가 조용히 깨진다.
-if [ "$(md5sum ide/static/theme.css tools/static/theme.css \
+if [ "$(md5sum ide/static/theme.css tools/pibo/static/theme.css \
         tools/pibrain/static/theme.css classifier/static/theme.css \
         | awk '{print $1}' | sort -u | wc -l)" = "1" ]; then
   echo "  ok   4벌 동일"

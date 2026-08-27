@@ -8,7 +8,7 @@ PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 50000
 
 @app.get('/', response_class=HTMLResponse)
 async def root():
-    # 실제 tools/templates/index.html 과 같은 상대 경로를 쓴다
+    # 실제 tools/pibo/templates/index.html 과 같은 상대 경로를 쓴다
     return '''<html><head><title>fake tools</title>
 <link rel="stylesheet" href="../static/index.css?ver=1"/>
 <script src="../static/index.js"></script>

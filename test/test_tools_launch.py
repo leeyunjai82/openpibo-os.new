@@ -27,11 +27,15 @@ print('── 보드 -> tools 앱 폴더 ──')
 pibo = launch.app_dir_for('pibo')
 pibrain = launch.app_dir_for('pibrain')
 
-check('파이보는 tools/', os.path.basename(pibo) == 'tools', pibo)
+check('파이보는 tools/pibo/', os.path.basename(pibo) == 'pibo', pibo)
 check('파이브레인은 tools/pibrain/', os.path.basename(pibrain) == 'pibrain', pibrain)
 check('둘이 다른 폴더', pibo != pibrain)
 # 모르는 보드에서 죽는 것보다 파이보 것으로 뜨는 편이 낫다(예전 그대로).
 check('모르는 보드는 파이보로', launch.app_dir_for('무엇') == pibo)
+# 둘은 같은 깊이에 나란히 있어야 한다. 한쪽만 tools/ 바로 밑에 있으면
+# "파이보가 본체고 파이브레인은 곁가지"로 읽힌다.
+check('두 앱이 같은 깊이', os.path.dirname(pibo) == os.path.dirname(pibrain),
+      f'{pibo} vs {pibrain}')
 
 print('── 두 앱이 다 갖춰져 있나 ──')
 for name, d in (('파이보', pibo), ('파이브레인', pibrain)):
@@ -70,7 +74,7 @@ print('── socket.io 번들 (userAgent 오타) ──')
 # 보안 컨텍스트(https, localhost)에서만 정의되므로 LAN http 로 쓸 때는
 # 조용히 넘어갔지만, 켜지는 순간 socket.io 가 통째로 안 뜬다.
 for rel in ('ide/static/socket.io.min.js',
-            'tools/static/socket.io.min.js',
+            'tools/pibo/static/socket.io.min.js',
             'classifier/static/socket.io.min.js'):
   body = open(os.path.join(ROOT, rel), encoding='utf-8', errors='replace').read()
   check(rel, 'navigator.userAgentData' not in body, 'userAgentData 오타가 남아 있습니다')

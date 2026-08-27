@@ -202,7 +202,7 @@ pip show openvino-dev | grep Requires
 - `threshold=0.4`가 교재·예제에 하드코딩되어 있는지
 - `vision_classify`를 학생 예제나 `tools`에서 직접 쓰는 곳이 있는지
   (있으면 TF가 상시 점유가 된다)
-- `tools/lib.py`의 `Pibo` 클래스가 openpibo의 어디까지 끌어오는지
+- `tools/pibo/lib.py`의 `Pibo` 클래스가 openpibo의 어디까지 끌어오는지
 - `yolo26s.onnx`(145행) / `yolo11s.onnx`(233행) 두 경로가 의도된 것인지
 - `speech.py`의 `analysis()`가 `https://oe-napi.circul.us`를 호출한다.
   온디바이스 전제와 충돌. 의도된 잔존인지 정리 대상인지
