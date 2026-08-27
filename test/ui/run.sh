@@ -45,7 +45,12 @@ mkdir -p "$OPENPIBO_HOME"
 $PY test/ui/fake_booting.py  >/dev/null 2>&1 & FB=$!
 $PY test/ui/fake_upstream.py 50000 >/dev/null 2>&1 & UP=$!
 $PY test/ui/shell_host.py    >/dev/null 2>&1 & SH=$!
-cleanup() { kill $FB $UP $SH 2>/dev/null; }
+cleanup() {
+  kill $FB $UP $SH 2>/dev/null
+  # 포트가 풀릴 때까지 기다린다. 바로 다시 돌리면 포트 검사가
+  # 자기 자신의 잔재에 걸려 엉뚱하게 멈춘다.
+  wait $FB $UP $SH 2>/dev/null
+}
 trap cleanup EXIT
 
 for _ in $(seq 1 60); do

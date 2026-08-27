@@ -571,3 +571,13 @@ button.disabled { opacity: 0.45; filter: grayscale(0.5); pointer-events: none; }
 .mobile-tab:hover  { background: rgba(0,0,0,0.06); color: #111; }
 .mobile-tab:active { transform: none; box-shadow: none; }
 .mobile-tab.active { color: #111; background: rgba(0,0,0,0.08); }
+
+
+/* ── 셸(iframe) 안에서 ────────────────────────────────────────
+   셸이 금색 바에 circulus 로고와 "코딩" 탭을 이미 보여준다.
+   여기서 THE MAKER 로고와 "IDE" 제목을 또 보여주면 로고가 두 개, 바가 두 겹이 된다.
+   **기능 버튼(메뉴, 전체화면, 초기화, 언어)은 건드리지 않는다.**
+   포트로 직접 열면 이 규칙이 안 걸려 예전 그대로다. */
+html.embedded { --header-h: 2.6rem; }
+html.embedded .header-logo,
+html.embedded #logo_bt { display: none; }

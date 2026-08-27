@@ -1,6 +1,15 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+  <!-- 셸(iframe) 안에서 열렸는지 표시한다.
+       셸이 이미 금색 바에 로고와 화면 이름을 보여주므로 여기서 또 보여줄 필요가 없다.
+       CSS 가 html.embedded 로 중복 브랜딩만 감춘다 (기능 버튼은 그대로 둔다).
+       <head> 안에서 바로 실행해 화면이 한 번 깜빡였다가 바뀌는 것을 막는다. -->
+  <script>
+    try { if (window.self !== window.top) document.documentElement.classList.add('embedded'); }
+    catch (e) { document.documentElement.classList.add('embedded'); }
+  </script>
+
   <title>Image Classifier for piBrain</title>
   <meta charset="UTF-8" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
@@ -8,7 +17,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="mobile-web-app-capable" content="yes" />
   <link rel="stylesheet" href="../static/all.min.css" type="text/css" />
-  <link rel="stylesheet" href="../static/index.css?ver=260320v1" />
+  <link rel="stylesheet" href="../static/index.css?ver=260827v3" />
   <link rel="shortcut icon" href="../static/icon.png?ver=240319v1" type="image/x-icon" />
   <script src="../static/jszip.min.js"></script>
   <script src="../static/tf.min-3.11.0.js"></script>

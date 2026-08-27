@@ -69,6 +69,37 @@ with sync_playwright() as pw:
     check('코딩 탭: iframe 이 붙음', pg.is_visible('#frame_code'))
     check('코딩 탭: 페이지 리로드 없음(홈 노드 유지)', pg.locator('#home_pane').count() == 1)
 
+    # 4b. 셸 안에서는 앱의 중복 브랜딩이 감춰져야 한다.
+    #     (로고 두 개, 바 두 겹으로 보이던 것)
+    #
+    # iframe 이 다 뜰 때까지 기다린다. 안 기다리면 아직 그려지지 않은 버튼을
+    # "감춰졌다"고 잘못 읽는다 — 통과해도 실제로 확인한 게 없는 상태가 된다.
+    pg.wait_for_function(
+        '() => { const f = document.getElementById("frame_code");'
+        '  return f && f.contentDocument'
+        '      && f.contentDocument.readyState === "complete"'
+        '      && f.contentDocument.querySelector("#sidebar_toggle_btn"); }',
+        timeout=15000)
+
+    embedded = pg.eval_on_selector(
+        '#frame_code', 'f=>f.contentDocument.documentElement.classList.contains("embedded")')
+    check('셸 안: 앱이 embedded 를 인식', embedded)
+    fr = pg.frame_locator('#frame_code')
+    check('셸 안: 앱 제목이 감춰짐', not fr.locator('.header-logo').is_visible())
+    check('셸 안: THE MAKER 로고가 감춰짐', not fr.locator('#logo_bt').is_visible())
+    check('셸 안: 기능 버튼은 남음 (메뉴)', fr.locator('#sidebar_toggle_btn').is_visible())
+    check('셸 안: 기능 버튼은 남음 (언어)', fr.locator('#lang-toggle').is_visible())
+
+    # 포트로 직접 열면 예전 그대로여야 한다
+    pg_d = b.new_page(viewport={'width': 1280, 'height': 800})
+    pg_d.goto(BASE + '/ide', wait_until='networkidle')
+    pg_d.wait_for_timeout(1500)
+    check('직접 열기: embedded 아님',
+          not pg_d.evaluate('document.documentElement.classList.contains("embedded")'))
+    check('직접 열기: 앱 제목 그대로', pg_d.locator('.header-logo').is_visible())
+    check('직접 열기: THE MAKER 로고 그대로', pg_d.locator('#logo_bt').is_visible())
+    pg_d.close()
+
     # 5. 뒤로가기가 홈으로
     pg.go_back()
     pg.wait_for_timeout(400)
