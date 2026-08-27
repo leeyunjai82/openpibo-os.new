@@ -1,4 +1,5 @@
-from openpibo.oled import Oled
+from openpibo.board import BOARD
+from openpibo.oled import get_display
 from openpibo.audio import Audio
 from fastapi import FastAPI, Body, Request
 from fastapi.responses import JSONResponse,HTMLResponse
@@ -14,19 +15,32 @@ import wifi
 import network_disp
 import uart_ctrl
 import argparse
-from mcu_control import DeviceControl
+
+SYSTEM_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# 파이보에만 MCU(ATmega328P)가 있다. 파이브레인에서는 import 자체를 하지 않는다.
+# mcu_control 은 /dev/ttyS0 을 여는데 파이브레인에는 그 장치가 없다.
+device_control = None
+if BOARD.features.has_mcu:
+  from mcu_control import DeviceControl
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
   global winfo, ole, aud, device_control
-  ole = Oled()
+  ole = get_display()
   aud = Audio()
-  device_control = DeviceControl()
-  device_control.send_raw("#20:150,150,150!")
+
+  if BOARD.features.has_mcu:
+    device_control = DeviceControl()
+    device_control.send_raw("#20:150,150,150!")   # 부팅 중 — 눈 LED 켜기
+
   winfo = ['','','','','','']
   uart_ctrl.start()
   boot()
-  device_control.send_raw("#20:0,0,0!")
+
+  if BOARD.features.has_mcu:
+    device_control.send_raw("#20:0,0,0!")         # 부팅 끝 — 눈 LED 끄기
+
   yield
 
 app = FastAPI(lifespan=lifespan)
@@ -42,6 +56,12 @@ async def read_root(request: Request):
 
 @app.get("/device/{pkt}")
 async def device_command(pkt: str):
+  # 시리얼 프록시. run_ide.py 가 /dev/ttyS0 을 직접 열지 않고 여기로 우회한다.
+  if not BOARD.features.has_mcu:
+    return JSONResponse(
+      content=f'"{BOARD.label}"({BOARD.name}) 에는 MCU 가 없습니다.',
+      status_code=501,
+    )
   try:
     if pkt == "#15:!":
       return JSONResponse(content=device_control.system_data.get('battery', ''), status_code=200)
@@ -67,14 +87,14 @@ async def f(data: dict = Body(...)):
   if data['ssid'] == "": # error
     return JSONResponse(content=f"Error: {str(ex)}", status_code=500)
   elif data['psk'] == "": # open
-    os.system(f"sudo /home/pi/openpibo-os/system/conwifi.sh open '{data['ssid']}'")
+    os.system(f"sudo {SYSTEM_DIR}/conwifi.sh open '{data['ssid']}'")
   elif data['psk'] != "": # wpa or wpa-e
     if len(data['psk']) < 8:
       return JSONResponse(content={'result':'fail', 'data':'psk must be at least 8 digits.'}, status_code=200)
     elif data['identity'] == "": # wpa
-      os.system(f"sudo /home/pi/openpibo-os/system/conwifi.sh wpa-psk '{data['ssid']}' '{data['psk']}'")
+      os.system(f"sudo {SYSTEM_DIR}/conwifi.sh wpa-psk '{data['ssid']}' '{data['psk']}'")
     else: #wpa-e
-      os.system(f"sudo /home/pi/openpibo-os/system/conwifi.sh wpa-enterprise '{data['ssid']}' '{data['identity']}' '{data['psk']}'")
+      os.system(f"sudo {SYSTEM_DIR}/conwifi.sh wpa-enterprise '{data['ssid']}' '{data['identity']}' '{data['psk']}'")
   else:
     return JSONResponse(content=f"Error: {str(ex)}", status_code=500)
   os.system('shutdown -r now &') 
@@ -82,17 +102,17 @@ async def f(data: dict = Body(...)):
 
 def wifi_update():
   global winfo, apmode
-  tmp = os.popen('/home/pi/openpibo-os/system/system.sh').read().strip('\n').split(',')
+  tmp = os.popen(f'{SYSTEM_DIR}/system.sh').read().strip('\n').split(',')
   if (tmp[6] != '' and tmp[6][0:3] != '169') or (tmp[7] != '' and tmp[7][0:3] != '169'):
     if apmode == True:
       #os.system("sudo ip link set ap0 down")
-      os.system("/home/pi/openpibo-os/system/hotspot.sh stop")
+      os.system(f"{SYSTEM_DIR}/hotspot.sh stop")
       print(f'ap0 up->down')
     apmode = False
   else:
     if apmode == False:
       #os.system("sudo ip link set ap0 up")
-      os.system("/home/pi/openpibo-os/system/hotspot.sh start")
+      os.system(f"{SYSTEM_DIR}/hotspot.sh start")
       print(f'ap0 down->up')
     apmode = True
   if winfo != tmp[6:12]:
@@ -118,18 +138,21 @@ def boot():
   except Exception as ex:
     pass
 
-  aud.play("/home/pi/openpibo-os/system/opening.mp3", 70)
+  aud.play(f"{SYSTEM_DIR}/opening.mp3", 70)
   ole.clear()
-  ole.draw_image("/home/pi/openpibo-os/system/pibo.jpg")
-  ole.draw_text((5,0), os_version)
+  # 스플래시는 화면 크기가 달라 보드마다 다른 파일이다.
+  # 파이브레인 스플래시는 240x320 을 꽉 채워서 버전 글자를 겹쳐 쓰지 않는다.
+  ole.draw_image(f"{SYSTEM_DIR}/{BOARD.boot.splash}")
+  if BOARD.boot.show_version:
+    ole.draw_text((5,0), os_version)
   ole.show()
   time.sleep(5)
   for i in range(1,10):
-    tmp = os.popen('/home/pi/openpibo-os/system/system.sh').read().strip('\n').split(',')
+    tmp = os.popen(f'{SYSTEM_DIR}/system.sh').read().strip('\n').split(',')
     if (tmp[6] != '' and tmp[6][0:3] != '169') or (tmp[7] != '' and tmp[7][0:3] != '169'):
       #os.system("/home/pi/openpibo-os/system/hotspot.sh stop")
       break
-    ole.draw_text((5,5), "˚".join(["" for _ in range(i+1)]))
+    ole.draw_text((5,5), BOARD.boot.progress_sep.join(["" for _ in range(i+1)]))
     ole.show()
     time.sleep(3)
   network_disp.run()

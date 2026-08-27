@@ -1,0 +1,20 @@
+[Unit]
+Description=openpibo tools (port 50000)
+After=network.target
+Wants=network.target
+
+# 카메라 / 오디오 / 시리얼을 독점한다. ide.service 가 systemctl 로
+# classify.service, llama-server.service 와 번갈아 켠다.
+# 동시에 뜨면 2GB 에서 OOM 이다 (docs/plan/00-decisions.md 4.3).
+Conflicts=classify.service llama-server.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/home/pi/openpibo-os/tools
+ExecStart=/home/pi/.pyenv/bin/python3 /home/pi/openpibo-os/tools/run_tools.py --port 50000
+Restart=no
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target

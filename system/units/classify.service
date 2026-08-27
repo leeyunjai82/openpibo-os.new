@@ -1,0 +1,17 @@
+[Unit]
+Description=openpibo classifier (port 50010)
+After=network.target
+Wants=network.target
+
+Conflicts=tools.service llama-server.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/home/pi/openpibo-os/classifier
+ExecStart=/home/pi/.pyenv/bin/python3 /home/pi/openpibo-os/classifier/run_classify.py --port 50010
+Restart=no
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target

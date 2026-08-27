@@ -1,0 +1,16 @@
+[Unit]
+Description=openpibo IDE (blockly + python, port 80)
+After=network.target booting.service
+Wants=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/home/pi/openpibo-os/ide
+ExecStart=/home/pi/.pyenv/bin/python3 /home/pi/openpibo-os/ide/run_ide.py --port 80
+Restart=on-failure
+RestartSec=3
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target

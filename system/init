@@ -1,5 +1,18 @@
 #!/bin/sh -e
 #
+# 부팅 시 한 번 돈다. (rc.local / systemd 에서 호출)
+#
+# 하는 일
+#   1. USB 복구 이미지가 꽂혀 있으면 그것부터
+#   2. 호스트명을 시리얼로 맞춤 (바뀌면 재부팅)
+#   3. 작업 폴더 생성
+#   4. 보드 확인 — 없으면 경고만 하고 넘어간다 (openpibo.board 가 pibo 로 폴백)
+#   5. systemd 유닛 링크 확인
+#   6. 보드에 있는 하드웨어만 초기화
+#   7. booting.service, ide.service 시작
+
+REPO=/home/pi/openpibo-os
+
 # recovery usb
 if [ -f /media/usb/update.zip ]; then
   sudo unzip /media/usb/update.zip -d /home/pi/
@@ -25,11 +38,32 @@ mkdir -p /home/pi/myimage
 mkdir -p /home/pi/myaudio
 mkdir -p /home/pi/mymodel
 
-# motor init
-sudo servo init
+# board profile
+# 없다고 부팅을 막지는 않는다. 현장에 이미 나가 있는 파이보는 이 파일이 없고,
+# openpibo.board 가 pibo 로 폴백하면서 경고만 낸다.
+if [ -f /home/pi/.board ]; then
+  BOARD=$(cat /home/pi/.board)
+else
+  BOARD=pibo
+  echo "[init] /home/pi/.board 가 없습니다. '$BOARD' 로 갑니다."
+  echo "[init] 확정하려면: sudo bash $REPO/system/set_board.sh <pibo|pibrain>"
+fi
+echo "[init] board = $BOARD"
+
+# systemd units
+# 유닛이 레포가 아니라 /etc 에만 있으면 이미지 재현이 안 된다.
+# 링크가 안 걸려 있으면 걸어 준다 (system/units/install.sh 가 실제 작업).
+if [ ! -L /etc/systemd/system/ide.service ]; then
+  echo "[init] systemd 유닛을 레포로 링크합니다."
+  sudo bash $REPO/system/units/install.sh || echo "[init] 유닛 링크 실패 — 기존 유닛으로 계속합니다."
+fi
+
+# motor init — 다리/서보는 MCU 가 있는 보드만
+if [ "$BOARD" = "pibo" ]; then
+  sudo servo init
+fi
 
 # network init
-#/etc/systemd/system/booting.service
 sudo systemctl start booting.service
 
 # run server
