@@ -130,9 +130,20 @@ for (const [board, dir] of Object.entries(UPSTREAM)) {
                   sandbox, { filename: `${board}/customblock_toolbox.js` });
   const up = collect(vm.runInContext('toolbox_dict', sandbox).ko);
   const ours = collect(buildToolbox(board));
-  const lost = [...up.types].filter((t) => !ours.types.has(t));
+  // 원본과 일부러 다르게 한 것. 이유를 적어 두지 않으면 다음 사람이
+  // "빠뜨렸나?" 하고 되돌린다.
+  const DELIBERATE = {
+    // OledByPiBrain 에 invert() 메서드가 없다. 원본 파이브레인 툴박스에는
+    // 이 블록이 들어 있는데, 끌어다 실행하면 AttributeError 로 죽는다.
+    // 있지도 않은 기능을 서랍에 두는 것보다 감추는 편이 낫다.
+    pibrain: ['oled_invert'],
+    pibo: [],
+  };
+  const lost = [...up.types].filter(
+    (t) => !ours.types.has(t) && !(DELIBERATE[board] || []).includes(t));
   const extra = [...ours.types].filter((t) => !up.types.has(t));
-  check(`${board}: 원본 툴박스에 있던 블록을 안 잃음`, lost.length === 0, lost.join(', '));
+  check(`${board}: 원본 툴박스에 있던 블록을 안 잃음 (의도한 것 제외)`,
+        lost.length === 0, lost.join(', '));
   check(`${board}: 원본에 없던 블록이 안 생김`, extra.length === 0, extra.join(', '));
 }
 

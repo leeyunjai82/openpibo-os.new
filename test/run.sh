@@ -23,6 +23,7 @@ run() {
 
 run "보드 프로파일" $PY test/test_board.py
 run "보드별 tools 앱 선택" $PY test/test_tools_launch.py
+run "블록↔라이브러리 맞물림" $PY test/test_block_api.py
 
 if command -v node >/dev/null 2>&1; then
   run "블록 툴박스 보드 필터" node test/js/board_filter.test.js

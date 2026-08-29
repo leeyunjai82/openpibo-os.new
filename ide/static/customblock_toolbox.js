@@ -1435,6 +1435,7 @@ let toolbox = (lang) => {
           {
             "kind": "block",
             "type": "oled_invert",
+            "requires": "has_display_invert",
           },
           {
             "kind": "block",

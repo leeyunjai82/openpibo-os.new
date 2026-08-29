@@ -66,6 +66,7 @@ has_usb_uart = true            # USB 시리얼로 외부 장치 붙이기 (openp
 can_record_audio = false       # pibrain 레포가 audio_record 블록을 꺼 놨던 것을 그대로 옮긴 값.
                                # 하드웨어로 확인한 사실이 아니다. 마이크가 되는 것이
                                # 확인되면 true 로 올릴 것.
+has_display_invert = false   # ILI9341 컬러 — 반전 명령이 없다 (OledByPiBrain 에 invert() 없음)
 
 # ── 확인 필요 ─────────────────────────────────────────────
 [unverified]

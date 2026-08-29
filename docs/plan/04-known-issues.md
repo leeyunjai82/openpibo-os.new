@@ -12,7 +12,41 @@
 
 ---
 
-## 높음 — **10건 전부 [고침]**
+## 높음 — **11건 전부 [고침]**
+
+### 0-5. 블록이 뱉는 화면(oled) 코드가 보드에 매여 있었다  `[고침]`
+
+**통합하면서 내가 흘린 것이다.** 두 레포의 생성기를 이름 단위로만 대조하고
+**본문**은 안 봤다. 본문을 뜯어 보니 14개가 다르고, 그중 12개가 진짜 기능 차이였다.
+
+    파이보     Blockly.Python.definitions_[...] = 'from openpibo.oled import Oled';
+    파이브레인 Blockly.Python.definitions_[...] = 'from openpibo.oled import OledByPiBrain as Oled';
+
+파이보 것을 가져왔으므로 **파이브레인에서 화면 블록 전부가 SSD1306(128×64 흑백)을
+잡는다.** 파이브레인 화면은 ILI9341(240×320 컬러)이다. 블록을 끌어다 실행하면
+엉뚱한 하드웨어를 열거나 죽는다. 서랍에는 멀쩡히 보이니 아이는 자기가 틀린 줄 안다.
+
+고친 방향은 블록에서 보드를 분기하는 게 아니라, **이미 만들어 둔 팩토리를 쓰는 것**이다.
+
+    from openpibo.oled import get_display
+    oled = get_display()          # 프로파일의 display.driver 가 클래스를 고른다
+
+이러면 같은 코드가 두 보드에서 다 돈다. 손으로 쓴 코드도, 저장된 블록도 같이 산다.
+
+나머지 2개(`speech_otts`, `speech_otts_play`)는 세미콜론 유무뿐이라 동작이 같다.
+블록 **정의**(customblock.js)는 6개가 다른데 전부 `IMAGE`/`IMAEG` 오타와
+TTS 목소리 **표시 이름**(k0~k9 / m1~f5, 값은 양쪽 다 m1~f5)이라 기능 차이가 없다.
+
+### 0-6. `oled_invert` 가 파이브레인 서랍에 있는데 메서드가 없다  `[고침]`
+
+`OledByPiBrain` 에는 `invert()` 가 없다 (컬러 LCD 에 반전 명령이 없다).
+그런데 **파이브레인 원본 툴박스에도 이 블록이 들어 있다** — 끌어다 쓰면
+`AttributeError` 로 죽는다. 원본에 있던 버그다.
+
+프로파일에 `has_display_invert` 를 넣고 서랍에서 걸렀다.
+`test/js/board_filter.test.js` 의 원본 대조에는 "일부러 다르게 한 것"으로 적어 뒀다 —
+안 적으면 다음 사람이 "빠뜨렸나?" 하고 되돌린다.
+
 
 ### 0-2. `en.js` — `SPEECH_GTTS` 가 통째로 빠짐  `[고침]`
 
